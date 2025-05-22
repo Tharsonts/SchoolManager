@@ -141,12 +141,6 @@ export function Header({ toggleSidebar, pageTitle }: HeaderProps) {
               >
                 Meu Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate('/settings')}
-              >
-                Configurações
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300"
