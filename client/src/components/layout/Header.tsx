@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, ChevronDown, Menu, Moon, Sun } from "lucide-react";
+import { Bell, LogOut, Menu, Moon, Sun, User, Settings } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,7 @@ interface HeaderProps {
 
 export function Header({ toggleSidebar, pageTitle }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const [, navigate] = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -150,9 +150,11 @@ export function Header({ toggleSidebar, pageTitle }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300"
-                onClick={() => window.location.href = '/api/logout'}
+                onClick={() => logout()}
+                disabled={isLoggingOut}
               >
-                Sair
+                <LogOut className="mr-2 h-4 w-4" />
+                {isLoggingOut ? "Saindo..." : "Sair"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

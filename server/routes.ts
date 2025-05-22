@@ -386,6 +386,23 @@ async function createDemoUsers() {
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+  
+  // Logout route
+  app.post('/api/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      req.session.destroy((error) => {
+        if (error) {
+          console.error("Error destroying session:", error);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.clearCookie('connect.sid');
+        return res.status(200).json({ message: "Logged out successfully" });
+      });
+    });
+  });
 
   // Users routes
   app.get('/api/users', isAuthenticated, async (req, res) => {
