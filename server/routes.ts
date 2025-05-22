@@ -1,18 +1,386 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { users } from "@shared/schema";
+
+// Schema for login validation
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(3)
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Create demo users 
+  await createDemoUsers();
+  
+  // Function to create predefined demo users
+async function createDemoUsers() {
+  try {
+    // Check if users already exist
+    const existingUsers = await db.select().from(users);
+    if (existingUsers.length > 0) {
+      console.log("Demo users already exist, skipping creation");
+      return;
+    }
+    
+    // Create demo users with hashed passwords
+    const demoUsers = [
+      {
+        id: "admin1",
+        email: "admin@escola.com",
+        password: await bcrypt.hash("admin123", 10),
+        firstName: "Admin",
+        lastName: "Escola",
+        role: "admin",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Admin+Escola&background=0D8ABC&color=fff"
+      },
+      {
+        id: "coord1",
+        email: "coord@escola.com",
+        password: await bcrypt.hash("coord123", 10),
+        firstName: "Coordenador",
+        lastName: "Escola",
+        role: "coordinator",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Coordenador+Escola&background=09A65A&color=fff"
+      },
+      {
+        id: "prof1",
+        email: "prof@escola.com",
+        password: await bcrypt.hash("prof123", 10),
+        firstName: "Professor",
+        lastName: "Escola",
+        role: "teacher",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Professor+Escola&background=F59E0B&color=fff"
+      },
+      {
+        id: "aluno1",
+        email: "aluno@escola.com",
+        password: await bcrypt.hash("aluno123", 10),
+        firstName: "Aluno",
+        lastName: "Escola",
+        role: "student",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Aluno+Escola&background=DB2777&color=fff"
+      }
+    ];
+    
+    // Insert demo users
+    for (const user of demoUsers) {
+      await db.insert(users).values(user);
+    }
+    
+    console.log("Demo users created successfully");
+    
+    // Create some demo classes
+    const demoClasses = [
+      {
+        name: "Turma 1A",
+        grade: "Ensino Fundamental",
+        year: "2025",
+        room: "Sala 101",
+        teacherId: "prof1"
+      },
+      {
+        name: "Turma 2B",
+        grade: "Ensino Fundamental",
+        year: "2025",
+        room: "Sala 102",
+        teacherId: "prof1"
+      },
+      {
+        name: "Turma 3C",
+        grade: "Ensino Médio",
+        year: "2025",
+        room: "Sala 201",
+        teacherId: "prof1"
+      }
+    ];
+    
+    // Insert demo classes and store their IDs
+    const classIds = [];
+    for (const classData of demoClasses) {
+      const createdClass = await storage.createClass(classData);
+      classIds.push(createdClass.id);
+    }
+    
+    // Create demo subjects
+    const demoSubjects = [
+      {
+        name: "Matemática",
+        description: "Álgebra, geometria e cálculo",
+        teacherId: "prof1"
+      },
+      {
+        name: "Português",
+        description: "Gramática e literatura",
+        teacherId: "prof1"
+      },
+      {
+        name: "Ciências",
+        description: "Física, química e biologia",
+        teacherId: "prof1"
+      },
+      {
+        name: "História",
+        description: "História mundial e do Brasil",
+        teacherId: "prof1"
+      }
+    ];
+    
+    // Insert demo subjects and store their IDs
+    const subjectIds = [];
+    for (const subject of demoSubjects) {
+      const createdSubject = await storage.createSubject(subject);
+      subjectIds.push(createdSubject.id);
+    }
+    
+    // Create demo events
+    const currentDate = new Date();
+    const demoEvents = [
+      {
+        title: "Reunião de Pais",
+        description: "Reunião com pais e responsáveis para discutir o desempenho dos alunos",
+        date: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15).toISOString().split('T')[0],
+        startTime: "18:00",
+        endTime: "20:00",
+        location: "Auditório",
+        type: "meeting",
+        createdBy: "coord1"
+      },
+      {
+        title: "Prova Bimestral",
+        description: "Provas do primeiro bimestre",
+        date: new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 10).toISOString().split('T')[0],
+        startTime: "08:00",
+        endTime: "12:00",
+        location: "Salas de aula",
+        type: "exam",
+        createdBy: "prof1"
+      },
+      {
+        title: "Feira de Ciências",
+        description: "Alunos apresentam projetos científicos",
+        date: new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 20).toISOString().split('T')[0],
+        startTime: "09:00",
+        endTime: "16:00",
+        location: "Pátio",
+        type: "activity",
+        createdBy: "coord1"
+      }
+    ];
+    
+    // Insert demo events
+    for (const event of demoEvents) {
+      await storage.createEvent(event);
+    }
+    
+    // Create demo grades
+    if (classIds.length > 0 && subjectIds.length > 0) {
+      const demoGrades = [
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[0], // Matemática
+          period: "1º Bimestre",
+          value: 8.5,
+          teacherId: "prof1",
+          comments: "Bom desempenho em álgebra, precisa melhorar em geometria."
+        },
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[1], // Português
+          period: "1º Bimestre",
+          value: 7.8,
+          teacherId: "prof1",
+          comments: "Boa redação, precisa melhorar em gramática."
+        },
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[2], // Ciências
+          period: "1º Bimestre",
+          value: 9.2,
+          teacherId: "prof1",
+          comments: "Excelente desempenho em experimentos e relatórios."
+        }
+      ];
+      
+      // Insert demo grades
+      for (const grade of demoGrades) {
+        await storage.createGrade(grade);
+      }
+      
+      // Create demo attendance records
+      const currentDate = new Date();
+      const yesterday = new Date(currentDate);
+      yesterday.setDate(currentDate.getDate() - 1);
+      const twoDaysAgo = new Date(currentDate);
+      twoDaysAgo.setDate(currentDate.getDate() - 2);
+      
+      const demoAttendance = [
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[0],
+          date: currentDate.toISOString().split('T')[0],
+          status: "present",
+          teacherId: "prof1"
+        },
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[1],
+          date: yesterday.toISOString().split('T')[0],
+          status: "present",
+          teacherId: "prof1"
+        },
+        {
+          studentId: "aluno1",
+          classId: classIds[0],
+          subjectId: subjectIds[2],
+          date: twoDaysAgo.toISOString().split('T')[0],
+          status: "absent",
+          teacherId: "prof1",
+          comments: "Ausência justificada por atestado médico."
+        }
+      ];
+      
+      // Insert demo attendance
+      for (const attendance of demoAttendance) {
+        await storage.createAttendance(attendance);
+      }
+      
+      // Create demo diary entries
+      const demoDiaryEntries = [
+        {
+          teacherId: "prof1",
+          classId: classIds[0],
+          subjectId: subjectIds[0],
+          date: currentDate.toISOString().split('T')[0],
+          content: "Aula sobre equações de segundo grau. Exercícios das páginas 45-48 para casa."
+        },
+        {
+          teacherId: "prof1",
+          classId: classIds[0],
+          subjectId: subjectIds[1],
+          date: yesterday.toISOString().split('T')[0],
+          content: "Aula sobre análise sintática. Redação sobre 'Meu futuro profissional' para entregar na próxima aula."
+        }
+      ];
+      
+      // Insert demo diary entries
+      for (const diaryEntry of demoDiaryEntries) {
+        await storage.createDiaryEntry(diaryEntry);
+      }
+    }
+    
+    // Create demo notifications
+    const demoNotifications = [
+      {
+        title: "Boas-vindas",
+        message: "Bem-vindo ao novo sistema escolar! Explore as funcionalidades.",
+        type: "info",
+        senderId: "admin1",
+        targetId: "all",
+        targetType: "all"
+      },
+      {
+        title: "Agenda de Provas",
+        message: "As provas do primeiro bimestre serão realizadas na próxima semana.",
+        type: "reminder",
+        senderId: "coord1",
+        targetId: "all",
+        targetType: "all"
+      },
+      {
+        title: "Trabalho de Matemática",
+        message: "Trabalho sobre funções quadráticas deve ser entregue até dia 10/05.",
+        type: "assignment",
+        senderId: "prof1",
+        targetId: "aluno1",
+        targetType: "user"
+      }
+    ];
+    
+    // Insert demo notifications
+    for (const notification of demoNotifications) {
+      await storage.createNotification(notification);
+    }
+    
+    console.log("Demo data created successfully");
+    
+  } catch (error) {
+    console.error("Error creating demo users:", error);
+  }
+}
+
+  // Custom login route
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const { email, password } = loginSchema.parse(req.body);
+      
+      // Find user by email
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Check password
+      const isPasswordValid = await bcrypt.compare(password, user.password || '');
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Set user in session
+      req.login({ 
+        claims: { 
+          sub: user.id,
+          email: user.email,
+          role: user.role 
+        } 
+      }, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Login failed" });
+        }
+        return res.status(200).json({ user });
+      });
+      
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Auth routes
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const userId = (req.user as any).claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Invalid user session" });
+      }
+      
       const user = await storage.getUser(userId);
-      res.json(user);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't send password to client
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

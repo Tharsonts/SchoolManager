@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LogoIcon } from "@/components/layout/LogoIcon";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function LoginPage() {
   const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [_, setLocation] = useLocation();
   
   const handleLoginDemo = (demoEmail: string, demoPassword: string) => {
     setEmail(demoEmail);
@@ -20,6 +27,41 @@ export default function LoginPage() {
   
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Login bem-sucedido!",
+          description: `Bem-vindo(a), ${data.user.firstName || ""}!`,
+        });
+        setLocation("/dashboard");
+      } else {
+        const errorData = await response.json().catch(() => ({ message: "Falha no login" }));
+        setError(errorData.message || "Falha no login. Verifique suas credenciais.");
+      }
+    } catch (err) {
+      setError("Erro ao conectar ao servidor. Tente novamente.");
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -33,12 +75,16 @@ export default function LoginPage() {
           <p className="mt-2 text-gray-600 dark:text-gray-400">Faça login para acessar o sistema</p>
         </div>
         
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 flex items-center text-red-600 dark:text-red-400">
+            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <span className="text-sm">{error}</span>
+          </div>
+        )}
+        
         <form 
           className="mt-8 space-y-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            window.location.href = "/api/login";
-          }}
+          onSubmit={handleSubmit}
         >
           <div>
             <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
@@ -78,9 +124,10 @@ export default function LoginPage() {
           <div>
             <Button 
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 transition-colors"
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Entrar no Sistema
+              {isLoading ? "Entrando..." : "Entrar no Sistema"}
             </Button>
           </div>
 

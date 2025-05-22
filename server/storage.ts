@@ -25,7 +25,7 @@ import {
   type InsertNotification
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
