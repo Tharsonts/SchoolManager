@@ -27,7 +27,7 @@ interface SidebarProps {
 
 export function Sidebar({ isSidebarOpen, closeSidebar }: SidebarProps) {
   const [location, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   
   // Get user type from the authenticated user
   const userType = user?.role || 'admin';
@@ -159,13 +159,14 @@ export function Sidebar({ isSidebarOpen, closeSidebar }: SidebarProps) {
         )}
         
         {/* Logout Button (for all users) */}
-        <a 
-          href="/api/logout"
-          className="flex items-center px-2 py-2 mt-1 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-dark-500 dark:hover:text-primary-300 group transition-colors"
+        <button 
+          onClick={() => logout()}
+          disabled={isLoggingOut}
+          className="flex items-center w-full px-2 py-2 mt-1 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-dark-500 dark:hover:text-primary-300 group transition-colors"
         >
           <LogOut className="h-5 w-5 mr-3" />
-          Sair
-        </a>
+          {isLoggingOut ? "Saindo..." : "Sair"}
+        </button>
       </div>
     </div>
   );

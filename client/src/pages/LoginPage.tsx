@@ -51,7 +51,14 @@ export default function LoginPage() {
           title: "Login bem-sucedido!",
           description: `Bem-vindo(a), ${data.user.firstName || ""}!`,
         });
-        setLocation("/dashboard");
+        
+        // Determine which dashboard to show based on user role
+        const userRole = data.user.role;
+        if (userRole) {
+          setLocation(`/dashboard?role=${userRole}`);
+        } else {
+          setLocation("/dashboard");
+        }
       } else {
         const errorData = await response.json().catch(() => ({ message: "Falha no login" }));
         setError(errorData.message || "Falha no login. Verifique suas credenciais.");
