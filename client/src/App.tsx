@@ -35,35 +35,40 @@ function Router() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={LoginPage} />
+        <Route component={LoginPage} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {/* Public routes */}
-      <Route path="/" component={isAuthenticated ? DashboardPage : LoginPage} />
+      {/* Redirect root to dashboard when authenticated */}
+      <Route path="/" component={DashboardPage} />
       
       {/* Protected routes */}
-      {isAuthenticated && (
-        <>
-          <Route path="/dashboard" component={DashboardPage} />
-          <Route path="/students" component={StudentsPage} />
-          <Route path="/teachers" component={TeachersPage} />
-          <Route path="/coordinators" component={CoordinatorsPage} />
-          <Route path="/classes" component={ClassesPage} />
-          <Route path="/subjects" component={SubjectsPage} />
-          <Route path="/grades" component={GradesPage} />
-          <Route path="/my-grades" component={MyGradesPage} />
-          <Route path="/diary" component={DiaryPage} />
-          <Route path="/report-card" component={ReportCardPage} />
-          <Route path="/class" component={ClassPage} />
-          <Route path="/my-classes" component={MyClassesPage} />
-          <Route path="/attendance" component={AttendancePage} />
-          <Route path="/calendar" component={CalendarPage} />
-          <Route path="/reports" component={ReportsPage} />
-          <Route path="/notifications" component={NotificationsPage} />
-          <Route path="/user-management" component={UserManagementPage} />
-          <Route path="/settings" component={SettingsPage} />
-          <Route path="/profile" component={ProfilePage} />
-        </>
-      )}
+      <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/students" component={StudentsPage} />
+      <Route path="/teachers" component={TeachersPage} />
+      <Route path="/coordinators" component={CoordinatorsPage} />
+      <Route path="/classes" component={ClassesPage} />
+      <Route path="/subjects" component={SubjectsPage} />
+      <Route path="/grades" component={GradesPage} />
+      <Route path="/my-grades" component={MyGradesPage} />
+      <Route path="/diary" component={DiaryPage} />
+      <Route path="/report-card" component={ReportCardPage} />
+      <Route path="/class" component={ClassPage} />
+      <Route path="/my-classes" component={MyClassesPage} />
+      <Route path="/attendance" component={AttendancePage} />
+      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/notifications" component={NotificationsPage} />
+      <Route path="/user-management" component={UserManagementPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route path="/profile" component={ProfilePage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
