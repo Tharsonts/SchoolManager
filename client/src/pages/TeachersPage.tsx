@@ -317,7 +317,7 @@ export default function TeachersPage() {
                     <SelectValue placeholder="Filtrar por disciplina" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as disciplinas</SelectItem>
+                    <SelectItem value="all">Todas as disciplinas</SelectItem>
                     <SelectItem value="Matemática">Matemática</SelectItem>
                     <SelectItem value="Português">Português</SelectItem>
                     <SelectItem value="Ciências">Ciências</SelectItem>

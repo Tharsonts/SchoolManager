@@ -325,7 +325,7 @@ export default function StudentsPage() {
                     <SelectValue placeholder="Filtrar por turma" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as turmas</SelectItem>
+                    <SelectItem value="all">Todas as turmas</SelectItem>
                     <SelectItem value="6º Ano - A">6º Ano - A</SelectItem>
                     <SelectItem value="7º Ano - C">7º Ano - C</SelectItem>
                     <SelectItem value="8º Ano - B">8º Ano - B</SelectItem>

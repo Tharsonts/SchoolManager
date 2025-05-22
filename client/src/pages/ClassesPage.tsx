@@ -293,7 +293,7 @@ export default function ClassesPage() {
                     <SelectValue placeholder="Filtrar por nível" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os níveis</SelectItem>
+                    <SelectItem value="all">Todos os níveis</SelectItem>
                     <SelectItem value="Ensino Fundamental">Ensino Fundamental</SelectItem>
                     <SelectItem value="Ensino Médio">Ensino Médio</SelectItem>
                   </SelectContent>
