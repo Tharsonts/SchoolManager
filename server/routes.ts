@@ -37,37 +37,37 @@ async function createDemoUsers() {
         id: "admin1",
         email: "admin@escola.com",
         password: await bcrypt.hash("admin123", 10),
-        firstName: "Admin",
-        lastName: "Escola",
+        first_name: "Admin",
+        last_name: "Escola",
         role: "admin",
-        profileImageUrl: "https://ui-avatars.com/api/?name=Admin+Escola&background=0D8ABC&color=fff"
+        profile_image_url: "https://ui-avatars.com/api/?name=Admin+Escola&background=0D8ABC&color=fff"
       },
       {
         id: "coord1",
         email: "coord@escola.com",
         password: await bcrypt.hash("coord123", 10),
-        firstName: "Coordenador",
-        lastName: "Escola",
+        first_name: "Coordenador",
+        last_name: "Escola",
         role: "coordinator",
-        profileImageUrl: "https://ui-avatars.com/api/?name=Coordenador+Escola&background=09A65A&color=fff"
+        profile_image_url: "https://ui-avatars.com/api/?name=Coordenador+Escola&background=09A65A&color=fff"
       },
       {
         id: "prof1",
         email: "prof@escola.com",
         password: await bcrypt.hash("prof123", 10),
-        firstName: "Professor",
-        lastName: "Escola",
+        first_name: "Professor",
+        last_name: "Escola",
         role: "teacher",
-        profileImageUrl: "https://ui-avatars.com/api/?name=Professor+Escola&background=F59E0B&color=fff"
+        profile_image_url: "https://ui-avatars.com/api/?name=Professor+Escola&background=F59E0B&color=fff"
       },
       {
         id: "aluno1",
         email: "aluno@escola.com",
         password: await bcrypt.hash("aluno123", 10),
-        firstName: "Aluno",
-        lastName: "Escola",
+        first_name: "Aluno",
+        last_name: "Escola",
         role: "student",
-        profileImageUrl: "https://ui-avatars.com/api/?name=Aluno+Escola&background=DB2777&color=fff"
+        profile_image_url: "https://ui-avatars.com/api/?name=Aluno+Escola&background=DB2777&color=fff"
       }
     ];
     
