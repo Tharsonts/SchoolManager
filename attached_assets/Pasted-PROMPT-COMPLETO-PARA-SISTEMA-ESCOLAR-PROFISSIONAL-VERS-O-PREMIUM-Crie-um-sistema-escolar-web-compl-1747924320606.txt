@@ -1,0 +1,229 @@
+PROMPT COMPLETO PARA SISTEMA ESCOLAR PROFISSIONAL – VERSÃO PREMIUM
+Crie um sistema escolar web completo, moderno e funcional, com as seguintes especificações:
+
+🎯 OBJETIVO GERAL
+Construir uma plataforma escolar digital responsiva com login por tipo de usuário, dashboard inteligente, tema escuro/claro, relatórios avançados, e gestão de alunos, professores, notas, presença, eventos e boletins.
+
+👤 USUÁRIOS E PERMISSÕES
+Crie um sistema de autenticação com controle de acesso por perfis. Ao logar, cada usuário vê somente o que lhe é permitido.
+
+🧑‍🏫 Tipos de Usuário
+Tipo	Email	Senha	Permissões Principais
+Administrador	admin@escola.com	admin123	Controle total do sistema, cadastro de usuários, visualiza tudo
+Coordenador	coord@escola.com	coord123	Gerencia turmas, professores, relatórios e eventos
+Professor	prof@escola.com	prof123	Lançamento de notas, diário de classe, visualiza suas turmas/alunos
+Aluno	aluno@escola.com	aluno123	Visualiza boletim, notas, calendário, recados e presença
+
+🧭 MENU PERSONALIZADO POR USUÁRIO
+A interface lateral deve se adaptar ao tipo de usuário logado. Os itens a seguir são os visíveis para cada perfil:
+
+ADMINISTRADOR
+Dashboard
+
+Alunos
+
+Professores
+
+Coordenadores
+
+Turmas
+
+Disciplinas
+
+Notas
+
+Diário de Classe
+
+Calendário
+
+Relatórios
+
+Gerenciar Usuários
+
+Configurações
+
+Tema Claro/Escuro
+
+Logout
+
+COORDENADOR
+Dashboard
+
+Professores
+
+Turmas
+
+Disciplinas
+
+Relatórios
+
+Calendário
+
+Recados
+
+Logout
+
+PROFESSOR
+Dashboard
+
+Minhas Turmas
+
+Lançar Notas
+
+Diário de Classe
+
+Presença
+
+Recados
+
+Logout
+
+ALUNO
+Dashboard
+
+Minhas Notas
+
+Meu Boletim
+
+Turma
+
+Presença
+
+Calendário
+
+Recados
+
+Logout
+
+🛠️ FUNCIONALIDADES OBRIGATÓRIAS
+🔐 LOGIN
+Login seguro com sessão
+
+Logout
+
+Armazenar tipo de usuário
+
+Criptografia de senha
+
+🧑‍🎓 GESTÃO DE USUÁRIOS
+Cadastro, edição e exclusão de usuários
+
+Escolha de cargo/tipo ao cadastrar
+
+Upload de foto de perfil
+
+Filtro por tipo de usuário
+
+🏫 TURMAS & DISCIPLINAS
+Cadastro de turmas e séries
+
+Vincular professores e alunos
+
+Disciplinas por turma
+
+Visualização por série
+
+📋 NOTAS E BOLETIM
+Lançamento de notas por professor
+
+Consulta de notas pelo aluno
+
+Geração de boletim automático por disciplina
+
+Exportar boletim em PDF
+
+📅 CALENDÁRIO ESCOLAR
+Visualização mensal
+
+Eventos por data (provas, feriados, reuniões)
+
+Professores e coordenação podem criar eventos
+
+📓 DIÁRIO DE CLASSE
+Lançamento de conteúdo ministrado
+
+Lançamento de presença
+
+Histórico por data e disciplina
+
+📊 RELATÓRIOS
+Média de notas por turma
+
+Alunos com baixo desempenho
+
+Total de faltas por período
+
+Relatório por série, disciplina, professor
+
+Exportação em PDF ou CSV
+
+🔔 SISTEMA DE NOTIFICAÇÕES
+Avisos da coordenação
+
+Recados do professor para alunos
+
+Alertas de nota lançada ou evento futuro
+
+Notificações exibidas no topo da tela
+
+🌗 TEMA CLARO / ESCURO
+Botão no canto superior direito
+
+Ícone 🌞/🌙
+
+Modo salvo no localStorage
+
+Aplicado globalmente ao sistema
+
+🎨 DESIGN E ESTILO
+Layout responsivo (desktop, tablet, mobile)
+
+Menu lateral animado com ícones (Lucide, FontAwesome, Heroicons)
+
+Cards com sombra e animações leves
+
+Uso de Chart.js para gráficos
+
+Tipografia moderna e limpa
+
+Painel com cards:
+
+Total de alunos, professores, turmas
+
+Média geral da escola
+
+Modo escuro: fundo cinza escuro com textos claros e azul como cor de destaque
+
+📁 ESTRUTURA DO SISTEMA (Sugestão)
+bash
+Copiar
+Editar
+/frontend
+  /components
+  /pages
+  /styles
+  /utils
+  App.js
+  index.html
+/backend
+  /routes
+  /controllers
+  /models
+  db.js
+/server.js
+💾 BANCO DE DADOS (MODELOS)
+usuarios: nome, email, senha (hash), tipo, foto
+
+turmas: nome, série, professores, alunos
+
+disciplinas: nome, turma_id
+
+notas: aluno_id, disciplina_id, nota, professor_id
+
+presenca: aluno_id, data, status, turma_id
+
+eventos: título, data, descrição, turma_id
+
+diario: professor_id, data, disciplina_id, conteúdo
+
+recados: tipo, autor_id, mensagem, turma_id, visível_para
