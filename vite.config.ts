@@ -4,6 +4,8 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
+  // GitHub Pages publica o app em /SchoolManager/; localmente continuamos em /
+  base: process.env.GITHUB_ACTIONS ? "/SchoolManager/" : "/",
   plugins: [
     react(),
     runtimeErrorOverlay(),
