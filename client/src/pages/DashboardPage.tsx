@@ -2,7 +2,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 import { TeacherDashboard } from "@/components/dashboards/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboards/StudentDashboard";
-import { CoordinatorDashboard } from "@/components/dashboards/CoordinatorDashboard";
+import CoordinatorDashboard from "@/pages/coordinator/CoordinatorDashboard";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
@@ -23,8 +23,7 @@ export default function DashboardPage() {
       case 'aluno':
         return <StudentDashboard />;
       case 'coordinator':
-      case 'coordenador':
-        return <CoordinatorDashboard />;
+        return <CoordinatorDashboard />; // Dashboard específico do coordenador
       default:
         return <AdminDashboard />;
     }

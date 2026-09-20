@@ -58,7 +58,7 @@ const TEACHERS_DATA = [
     phone: "(11) 97777-8888",
     classes: ["9º Ano - A", "9º Ano - B", "8º Ano - A"],
     status: "active", 
-    avatar: ""
+    avatar: null
   },
   { 
     id: 2, 
@@ -79,8 +79,8 @@ const TEACHERS_DATA = [
     email: "roberto.lima@escola.com", 
     phone: "(11) 95555-6666",
     classes: ["8º Ano - B", "9º Ano - A", "9º Ano - B"],
-    status: "active", 
-    avatar: ""
+    status: "active",
+     avatar: null
   },
   { 
     id: 4, 
@@ -101,8 +101,8 @@ const TEACHERS_DATA = [
     email: "pedro.santos@escola.com", 
     phone: "(11) 93333-4444",
     classes: ["8º Ano - A", "8º Ano - B", "9º Ano - A"],
-    status: "active", 
-    avatar: ""
+    status: "active",
+    avatar: null
   },
 ];
 
@@ -124,7 +124,7 @@ export default function TeachersPage() {
   // Filter teachers based on search term and selected subject
   const filteredTeachers = teachers.filter(teacher => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (teacher.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         teacher.registration.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = selectedSubject ? teacher.subjects === selectedSubject : true;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,8 @@ import {
   Search, 
   CheckCircle, 
   XCircle, 
-  AlertCircle 
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,6 +42,8 @@ import { ptBR } from "date-fns/locale";
 import { cn, getUserInitials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAttendance } from "@/hooks/useApi";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data - in a real application, this would be fetched from the API
 const STUDENTS_DATA = [
@@ -122,7 +125,7 @@ const STUDENTS_DATA = [
         "2023-07-14": "present",
       }
     },
-    avatar: ""
+    avatar: null
   },
   { 
     id: 5, 
@@ -142,7 +145,7 @@ const STUDENTS_DATA = [
         "2023-07-14": "absent",
       }
     },
-    avatar: ""
+    avatar: null
   },
 ];
 
@@ -176,6 +179,7 @@ export default function AttendancePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [students, setStudents] = useState(STUDENTS_DATA);
   const [attendanceRecord, setAttendanceRecord] = useState<Record<number, boolean>>({});
+  const [selectedYear, setSelectedYear] = useState("2024");
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -184,6 +188,51 @@ export default function AttendancePage() {
   const userType = user?.role || 'admin';
   const isTeacherOrAdmin = userType === 'teacher' || userType === 'admin' || userType === 'coordinator';
   const isStudent = userType === 'student';
+
+  // Buscar frequência do aluno usando a API real
+  const { data: attendanceData, isLoading, error } = useAttendance(
+    user?.id || "",
+    selectedYear
+  );
+
+  // Anos disponíveis
+  const availableYears = ["2024", "2023", "2022"];
+
+  // Processar dados de frequência para o formato da interface
+  const processedAttendance = useMemo(() => {
+    if (!attendanceData?.data) return [];
+
+    // Agrupar frequência por disciplina
+    const attendanceBySubject = attendanceData.data.reduce((acc: any, record: any) => {
+      const subjectName = record.subjectName || "Disciplina";
+      
+      if (!acc[subjectName]) {
+        acc[subjectName] = {
+          subjectName,
+          records: [],
+          totalClasses: 0,
+          presentClasses: 0,
+          absentClasses: 0,
+          percentage: 0
+        };
+      }
+      
+      acc[subjectName].records.push(record);
+      return acc;
+    }, {});
+
+    // Calcular estatísticas por disciplina
+    Object.values(attendanceBySubject).forEach((subject: any) => {
+      if (subject.records.length > 0) {
+        subject.totalClasses = subject.records.length;
+        subject.presentClasses = subject.records.filter((r: any) => r.status === 'present').length;
+        subject.absentClasses = subject.records.filter((r: any) => r.status === 'absent').length;
+        subject.percentage = Math.round((subject.presentClasses / subject.totalClasses) * 100);
+      }
+    });
+
+    return Object.values(attendanceBySubject);
+  }, [attendanceData]);
 
   // Filter students based on selected class and search term
   const filteredStudents = students.filter(student => {
@@ -264,13 +313,54 @@ export default function AttendancePage() {
     students.find(s => s.id === 1) : // Mock - in a real app would use the logged-in student's ID
     null;
 
+  if (isStudent && isLoading) {
+    return (
+      <MainLayout pageTitle="Minha Frequência">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Carregando frequência...</span>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (isStudent && error) {
+    return (
+      <MainLayout pageTitle="Minha Frequência">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-2">Erro ao carregar frequência</p>
+            <p className="text-sm text-gray-600">Tente novamente mais tarde</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout pageTitle="Frequência">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Controle de Frequência</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {isStudent ? "Minha Frequência" : "Controle de Frequência"}
+          </h1>
           
           <div className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-0 w-full sm:w-auto">
+            {isStudent && (
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Ano Letivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year}>
+                      Ano Letivo {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
             <Button variant="outline" className="flex items-center gap-2" onClick={handleExportAttendance}>
               <Download className="h-4 w-4" />
               Exportar Relatório
@@ -462,20 +552,23 @@ export default function AttendancePage() {
           </Card>
         )}
         
-        {isStudent && studentData && (
+        {isStudent && (
           <div>
+            {/* Resumo geral da frequência */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center h-24 w-24 rounded-full bg-primary-100 dark:bg-primary-900 mb-4">
                       <span className="text-4xl font-bold text-primary-600 dark:text-primary-300">
-                        {studentData.attendance.percentage}%
+                        {processedAttendance.length > 0 
+                          ? Math.round(processedAttendance.reduce((acc: any, subj: any) => acc + subj.percentage, 0) / processedAttendance.length)
+                          : 0}%
                       </span>
                     </div>
-                    <h3 className="text-lg font-medium">Frequência Total</h3>
+                    <h3 className="text-lg font-medium">Frequência Geral</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {studentData.attendance.present} de {studentData.attendance.total} aulas
+                      Média de todas as disciplinas
                     </p>
                   </div>
                 </CardContent>
@@ -485,18 +578,20 @@ export default function AttendancePage() {
                 <CardContent className="p-6">
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <h3 className="text-lg font-medium mb-2">Aulas Presentes</h3>
+                      <h3 className="text-lg font-medium mb-2">Total de Aulas</h3>
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        <span className="text-2xl font-bold">{studentData.attendance.present}</span>
+                        <CalendarIcon className="h-5 w-5 text-blue-500" />
+                        <span className="text-2xl font-bold">
+                          {processedAttendance.reduce((acc: any, subj: any) => acc + subj.totalClasses, 0)}
+                        </span>
                       </div>
                     </div>
                     
                     <div className="mt-4">
                       <div className="bg-gray-200 dark:bg-gray-700 h-2 rounded-full">
                         <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: `${studentData.attendance.percentage}%` }}
+                          className="bg-blue-500 h-2 rounded-full" 
+                          style={{ width: "100%" }}
                         ></div>
                       </div>
                     </div>
@@ -508,18 +603,18 @@ export default function AttendancePage() {
                 <CardContent className="p-6">
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <h3 className="text-lg font-medium mb-2">Aulas Ausentes</h3>
+                      <h3 className="text-lg font-medium mb-2">Disciplinas</h3>
                       <div className="flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-500" />
-                        <span className="text-2xl font-bold">{studentData.attendance.absent}</span>
+                        <span className="text-2xl font-bold">{processedAttendance.length}</span>
+                        <span className="text-sm text-gray-500">matérias</span>
                       </div>
                     </div>
                     
                     <div className="mt-4">
                       <div className="bg-gray-200 dark:bg-gray-700 h-2 rounded-full">
                         <div 
-                          className="bg-red-500 h-2 rounded-full" 
-                          style={{ width: `${100 - studentData.attendance.percentage}%` }}
+                          className="bg-green-500 h-2 rounded-full" 
+                          style={{ width: "100%" }}
                         ></div>
                       </div>
                     </div>
@@ -528,42 +623,72 @@ export default function AttendancePage() {
               </Card>
             </div>
             
+            {/* Frequência por disciplina */}
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4">Histórico de Frequência</h3>
+                <h3 className="text-lg font-medium mb-4">Frequência por Disciplina - {selectedYear}</h3>
                 
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Disciplina</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Object.entries(studentData.attendance.dates).map(([date, status]) => (
-                        <TableRow key={date}>
-                          <TableCell>{format(new Date(date), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>Todas</TableCell>
-                          <TableCell>
-                            {status === "present" ? (
-                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                <CheckCircle className="h-4 w-4" />
-                                <span>Presente</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                                <XCircle className="h-4 w-4" />
-                                <span>Ausente</span>
-                              </div>
-                            )}
-                          </TableCell>
+                {processedAttendance.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Nenhum registro de frequência encontrado para o ano {selectedYear}
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Disciplina</TableHead>
+                          <TableHead className="text-center">Total de Aulas</TableHead>
+                          <TableHead className="text-center">Presentes</TableHead>
+                          <TableHead className="text-center">Ausentes</TableHead>
+                          <TableHead className="text-center">Percentual</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {processedAttendance.map((subject: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{subject.subjectName}</TableCell>
+                            <TableCell className="text-center">{subject.totalClasses}</TableCell>
+                            <TableCell className="text-center text-green-600">
+                              <div className="flex items-center justify-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                {subject.presentClasses}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center text-red-600">
+                              <div className="flex items-center justify-center gap-2">
+                                <XCircle className="h-4 w-4" />
+                                {subject.absentClasses}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <div 
+                                  className={`h-2.5 w-2.5 rounded-full ${
+                                    subject.percentage >= 90 ? "bg-green-500" :
+                                    subject.percentage >= 75 ? "bg-yellow-500" :
+                                    "bg-red-500"
+                                  }`}
+                                ></div>
+                                <span className="font-medium">{subject.percentage}%</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge 
+                                className={
+                                  subject.percentage >= 75 ? "bg-green-500" : "bg-red-500"
+                                }
+                              >
+                                {subject.percentage >= 75 ? "Regular" : "Crítico"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
                 
                 <div className="mt-6">
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 rounded-md p-4">

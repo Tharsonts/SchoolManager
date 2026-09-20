@@ -5,7 +5,7 @@ import { useTheme } from '@/components/ThemeProvider';
 // Register all Chart.js components
 Chart.register(...registerables);
 
-export function AttendanceChart() {
+export function AttendanceChart({ labels: propLabels, values: propValues }: { labels?: string[]; values?: number[] }) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
   const { theme } = useTheme();
@@ -23,13 +23,14 @@ export function AttendanceChart() {
         // Define colors based on theme
         const textColor = theme === 'dark' ? '#e5e7eb' : '#4b5563';
         
-        // Sample data - in a real app, this would come from an API
+        const labels = propLabels && propLabels.length ? propLabels : ['6º Ano','7º Ano','8º Ano','9º Ano'];
+        const values = propValues && propValues.length ? propValues : [95,88,85,90];
         const data = {
-          labels: ['6º Ano', '7º Ano', '8º Ano', '9º Ano'],
+          labels,
           datasets: [
             {
               label: 'Frequência (%)',
-              data: [95, 88, 85, 90],
+              data: values,
               backgroundColor: [
                 'rgba(16, 185, 129, 0.6)',
                 'rgba(59, 130, 246, 0.6)',
@@ -87,7 +88,7 @@ export function AttendanceChart() {
         chartInstance.current.destroy();
       }
     };
-  }, [theme]); // Re-render chart when theme changes
+  }, [theme, propLabels, propValues]);
   
   return <canvas ref={chartRef} />;
 }

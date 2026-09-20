@@ -3,47 +3,67 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Clock, Calendar, Users, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { BookOpen, Clock, Calendar, Users, ExternalLink, MapPin, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export default function MyClassesPage() {
-  const [activeTab, setActiveTab] = useState("current");
+  const [activeTab, setActiveTab] = useState("schedule");
+  const { user } = useAuth();
   
-  // Dados de exemplo - em um sistema real, isso viria do backend
-  const currentClasses = [
-    {
-      id: "1A",
-      name: "1º Ano A",
-      level: "Ensino Fundamental",
-      year: "2023",
-      subjects: ["Matemática", "Ciências"],
-      students: 30,
-      schedule: "Segunda e Quarta, 07:30 - 11:10",
-      color: "blue"
+  // Buscar dados da turma do aluno
+  const { data: classData, isLoading: isLoadingClass } = useQuery({
+    queryKey: ['student-class', user?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/student-class/${user?.id}`);
+      if (!response.ok) throw new Error('Falha ao carregar dados da turma');
+      return response.json();
     },
-    {
-      id: "2B",
-      name: "2º Ano B",
-      level: "Ensino Fundamental",
-      year: "2023",
-      subjects: ["Português", "História"],
-      students: 28,
-      schedule: "Terça e Quinta, 07:30 - 11:10",
-      color: "green"
-    },
-    {
-      id: "3C",
-      name: "3º Ano C",
-      level: "Ensino Fundamental",
-      year: "2023",
-      subjects: ["Geografia", "Artes"],
-      students: 25,
-      schedule: "Quarta e Sexta, 07:30 - 11:10",
-      color: "purple"
-    },
-  ];
+    enabled: !!user?.id
+  });
 
+  // Buscar dados das disciplinas da turma
+  const { data: subjectsData, isLoading: isLoadingSubjects } = useQuery({
+    queryKey: ['class-subjects', classData?.data?.classId],
+    queryFn: async () => {
+      const response = await fetch(`/api/class-subjects/${classData?.data?.classId}`);
+      if (!response.ok) throw new Error('Falha ao carregar disciplinas');
+      return response.json();
+    },
+    enabled: !!classData?.data?.classId
+  });
+
+  // Processar dados para o cronograma semanal
+  const weeklySchedule = useMemo(() => {
+    if (!subjectsData?.data) return [];
+
+    const days = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
+    const schedule: any[] = [];
+
+    days.forEach(day => {
+      const daySubjects = subjectsData.data.filter((subject: any) => 
+        subject.schedule?.includes(day)
+      );
+
+      if (daySubjects.length > 0) {
+        schedule.push({
+          day,
+          subjects: daySubjects.sort((a: any, b: any) => {
+            // Extrair horário do schedule (assumindo formato "Segunda-feira 8:00-9:30")
+            const timeA = a.schedule?.match(/(\d{1,2}):(\d{2})/)?.[0] || '00:00';
+            const timeB = b.schedule?.match(/(\d{1,2}):(\d{2})/)?.[0] || '00:00';
+            return timeA.localeCompare(timeB);
+          })
+        });
+      }
+    });
+
+    return schedule;
+  }, [subjectsData]);
+
+  // Dados de exemplo para turmas anteriores (em um sistema real, viria da API)
   const pastClasses = [
     {
       id: "1A-2022",
@@ -80,30 +100,111 @@ export default function MyClassesPage() {
     return colorMap[color] || colorMap.blue;
   }
 
+  function getSubjectColor(subjectName: string) {
+    const colors = [
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
+    ];
+    
+    const index = subjectName.length % colors.length;
+    return colors[index];
+  }
+
+  if (isLoadingClass || isLoadingSubjects) {
+    return (
+      <MainLayout pageTitle="Minha Turma">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Carregando dados da turma...</span>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
-    <MainLayout pageTitle="Minhas Turmas">
-      <Tabs defaultValue="current" onValueChange={setActiveTab}>
+    <MainLayout pageTitle="Minha Turma">
+      <Tabs defaultValue="schedule" onValueChange={setActiveTab}>
         <div className="flex justify-between items-center mb-4">
           <TabsList>
-            <TabsTrigger value="current">Turmas Atuais</TabsTrigger>
+            <TabsTrigger value="schedule">Cronograma Semanal</TabsTrigger>
+            <TabsTrigger value="info">Informações da Turma</TabsTrigger>
             <TabsTrigger value="past">Turmas Anteriores</TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="current">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            {currentClasses.map((classItem) => (
-              <Card 
-                key={classItem.id}
-                className={`border-2 ${getColorClass(classItem.color)}`}
-              >
+        <TabsContent value="schedule">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cronograma Semanal</CardTitle>
+              <CardDescription>
+                Horários das suas aulas organizados por dia da semana
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {weeklySchedule.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum horário encontrado para esta turma
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {weeklySchedule.map((daySchedule, dayIndex) => (
+                    <div key={dayIndex} className="border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+                        {daySchedule.day}
+                      </h3>
+                      <div className="grid gap-3">
+                        {daySchedule.subjects.map((subject: any, subjectIndex: number) => (
+                          <div 
+                            key={subjectIndex}
+                            className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-3 h-3 rounded-full ${getSubjectColor(subject.subjectName)}`}></div>
+                              <div>
+                                <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                  {subject.subjectName}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Prof. {subject.teacherName || "Professor"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>{subject.schedule?.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/)?.[0] || "Horário não definido"}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                <span>{subject.room || "Sala não definida"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="info">
+          {classData?.data ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="border-2 border-blue-200 dark:border-blue-800">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl">{classItem.name}</CardTitle>
-                      <CardDescription>{classItem.level}</CardDescription>
+                      <CardTitle className="text-xl">{classData.data.name}</CardTitle>
+                      <CardDescription>Turma Atual</CardDescription>
                     </div>
-                    <Badge>{classItem.year}</Badge>
+                    <Badge className="bg-blue-500">{classData.data.academicYear}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -111,80 +212,88 @@ export default function MyClassesPage() {
                     <div className="flex items-center">
                       <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">
-                        Disciplinas: {classItem.subjects.join(", ")}
+                        {subjectsData?.data?.length || 0} disciplinas
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">
-                        {classItem.students} alunos
+                        {classData.data.currentStudents || 0} alunos
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">
-                        {classItem.schedule}
+                        Ano letivo {classData.data.academicYear}
                       </span>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="border-t pt-4">
-                  <Link href={`/class?id=${classItem.id}`}>
-                    <Button className="w-full bg-blue-500 hover:bg-blue-600">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Acessar Turma
-                    </Button>
-                  </Link>
+                  <Button className="w-full bg-blue-500 hover:bg-blue-600" disabled>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Turma Atual
+                  </Button>
                 </CardFooter>
               </Card>
-            ))}
-          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Próximas Aulas</CardTitle>
-              <CardDescription>Suas próximas aulas agendadas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                  <Calendar className="h-10 w-10 text-blue-500 mr-4" />
-                  <div className="flex-1">
-                    <h4 className="font-medium">Matemática - 1º Ano A</h4>
-                    <p className="text-sm text-muted-foreground">Segunda-feira, 07:30 - 09:10</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Disciplinas</CardTitle>
+                  <CardDescription>Matérias que você cursa</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {subjectsData?.data?.map((subject: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                        <span className="font-medium">{subject.subjectName}</span>
+                        <Badge variant="outline" className={getSubjectColor(subject.subjectName)}>
+                          {subject.teacherName || "Professor"}
+                        </Badge>
+                      </div>
+                    )) || (
+                      <div className="text-center py-4 text-gray-500">
+                        Nenhuma disciplina encontrada
+                      </div>
+                    )}
                   </div>
-                  <Badge className="ml-2 bg-blue-500">Hoje</Badge>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="flex items-center p-3 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
-                  <Calendar className="h-10 w-10 text-green-500 mr-4" />
-                  <div className="flex-1">
-                    <h4 className="font-medium">Ciências - 1º Ano A</h4>
-                    <p className="text-sm text-muted-foreground">Segunda-feira, 09:30 - 11:10</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Próximas Aulas</CardTitle>
+                  <CardDescription>Suas próximas aulas de hoje</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {weeklySchedule.length > 0 ? (
+                      weeklySchedule[0]?.subjects?.slice(0, 2).map((subject: any, index: number) => (
+                        <div key={index} className="flex items-center p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                          <Calendar className="h-6 w-6 text-blue-500 mr-3" />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{subject.subjectName}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              {subject.schedule?.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/)?.[0] || "Horário não definido"}
+                            </p>
+                          </div>
+                          <Badge className="ml-2 bg-blue-500 text-xs">Hoje</Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        Nenhuma aula hoje
+                      </div>
+                    )}
                   </div>
-                  <Badge className="ml-2 bg-green-500">Hoje</Badge>
-                </div>
-
-                <div className="flex items-center p-3 rounded-md bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
-                  <Calendar className="h-10 w-10 text-purple-500 mr-4" />
-                  <div className="flex-1">
-                    <h4 className="font-medium">Português - 2º Ano B</h4>
-                    <p className="text-sm text-muted-foreground">Terça-feira, 07:30 - 09:10</p>
-                  </div>
-                  <Badge className="ml-2 bg-purple-500">Amanhã</Badge>
-                </div>
-
-                <div className="flex items-center p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
-                  <Calendar className="h-10 w-10 text-amber-500 mr-4" />
-                  <div className="flex-1">
-                    <h4 className="font-medium">História - 2º Ano B</h4>
-                    <p className="text-sm text-muted-foreground">Terça-feira, 09:30 - 11:10</p>
-                  </div>
-                  <Badge className="ml-2 bg-amber-500">Amanhã</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Nenhuma turma encontrada para este aluno
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="past">

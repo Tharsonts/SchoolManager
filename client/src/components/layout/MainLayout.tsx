@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import InstructionsModal from "@/components/ui/InstructionsModal";
+import CoordinatorInstructionModal from "@/components/instructions/CoordinatorInstructionModal";
+import { AppSidebar } from "./AppSidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -10,22 +11,10 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, pageTitle }: MainLayoutProps) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [, navigate] = useLocation();
+  const [showInstructions, setShowInstructions] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
-  const [location, navigate] = useLocation();
-  
-  // Handle sidebar for mobile devices
-  useEffect(() => {
-    const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth >= 1024);
-    };
-    
-    // Initial check
-    handleResize();
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -33,16 +22,6 @@ export function MainLayout({ children, pageTitle }: MainLayoutProps) {
       navigate('/');
     }
   }, [isAuthenticated, isLoading, navigate]);
-  
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-  
-  const closeSidebar = () => {
-    if (window.innerWidth < 1024) {
-      setIsSidebarOpen(false);
-    }
-  };
   
   if (isLoading) {
     return (
@@ -52,21 +31,53 @@ export function MainLayout({ children, pageTitle }: MainLayoutProps) {
     );
   }
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return null;
   }
-  
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'teacher': return 'Professor';
+      case 'coordinator': return 'Coordenador';
+      case 'student': return 'Aluno';
+      default: return 'Usuário';
+    }
+  };
+
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-dark-700">
-      <Sidebar isSidebarOpen={isSidebarOpen} closeSidebar={closeSidebar} />
-      
-      <div className="flex-1 flex flex-col lg:pl-64">
-        <Header toggleSidebar={toggleSidebar} pageTitle={pageTitle} />
-        
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-700 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar Component */}
+      <AppSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+        onInstructionsClick={() => setShowInstructions(true)}
+      />
+
+      {/* Main Content */}
+      <div className="lg:ml-64">
+
+        {/* Page Content */}
+        <main className="p-6">
           {children}
         </main>
       </div>
+
+      {/* Instructions Modal */}
+      {user?.role === 'coordinator' ? (
+        <CoordinatorInstructionModal 
+          isOpen={showInstructions}
+          onClose={() => setShowInstructions(false)}
+        />
+      ) : (
+        <InstructionsModal 
+          isOpen={showInstructions}
+          onClose={() => setShowInstructions(false)}
+          userRole={user?.role as 'admin' | 'teacher' | 'student'}
+        />
+      )}
     </div>
   );
 }
+
+export default MainLayout;

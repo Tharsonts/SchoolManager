@@ -2,7 +2,6 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,15 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { 
   Select,
   SelectContent,
@@ -27,14 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Download, Plus, FileText, Save, BookOpen } from "lucide-react";
+import { Download, Save, BookOpen, GraduationCap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserInitials, getGradeColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -96,7 +80,7 @@ const STUDENTS_DATA = [
       history: { grade1: 6.0, grade2: 6.5, grade3: 6.0, grade4: 6.5, final: 6.3 },
       geography: { grade1: 6.5, grade2: 6.0, grade3: 6.5, grade4: 6.0, final: 6.3 }
     },
-    avatar: ""
+    avatar: null
   },
   { 
     id: 5, 
@@ -110,7 +94,7 @@ const STUDENTS_DATA = [
       history: { grade1: 8.0, grade2: 7.5, grade3: 8.0, grade4: 7.5, final: 7.8 },
       geography: { grade1: 7.5, grade2: 8.0, grade3: 7.5, grade4: 8.0, final: 7.8 }
     },
-    avatar: ""
+    avatar: null
   },
 ];
 
@@ -148,7 +132,6 @@ export default function GradesPage() {
   const [students, setStudents] = useState(STUDENTS_DATA);
   const [period, setPeriod] = useState<string>("grade1");
   const [editedGrades, setEditedGrades] = useState<Record<number, string>>({});
-  const [isAddGradeDialogOpen, setIsAddGradeDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -224,251 +207,243 @@ export default function GradesPage() {
 
   return (
     <MainLayout pageTitle="Notas">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciamento de Notas</h1>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="flex items-center gap-3">
+            <GraduationCap className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gerenciamento de Notas</h1>
+          </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-0 w-full sm:w-auto">
-            <Button variant="outline" className="flex items-center gap-2" onClick={handleExportGrades}>
-              <Download className="h-4 w-4" />
-              Exportar Boletim
+          <div className="flex gap-3 mt-4 sm:mt-0">
+            <Button variant="outline" onClick={handleExportGrades}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
             </Button>
             
             {isTeacherOrAdmin && (
               <Button 
-                className="flex items-center gap-2"
                 onClick={handleSaveGrades}
                 disabled={Object.keys(editedGrades).length === 0}
               >
-                <Save className="h-4 w-4" />
-                Salvar Notas
+                <Save className="h-4 w-4 mr-2" />
+                Salvar
               </Button>
             )}
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <Label htmlFor="class-select" className="mb-2 block">Turma</Label>
-              <Select 
-                value={selectedClass} 
-                onValueChange={setSelectedClass}
-              >
-                <SelectTrigger id="class-select">
-                  <SelectValue placeholder="Selecione uma turma" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLASSES.map((cls) => (
-                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="class-select" className="text-sm font-medium">Turma</Label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger id="class-select" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSES.map((cls) => (
+                  <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
-          <Card>
-            <CardContent className="p-4">
-              <Label htmlFor="subject-select" className="mb-2 block">Disciplina</Label>
-              <Select 
-                value={selectedSubject} 
-                onValueChange={setSelectedSubject}
-              >
-                <SelectTrigger id="subject-select">
-                  <SelectValue placeholder="Selecione uma disciplina" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUBJECTS.map((subject) => (
-                    <SelectItem key={subject} value={subject}>{SUBJECT_NAMES[subject]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="subject-select" className="text-sm font-medium">Disciplina</Label>
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger id="subject-select" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SUBJECTS.map((subject) => (
+                  <SelectItem key={subject} value={subject}>{SUBJECT_NAMES[subject]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
-          <Card className="md:col-span-2">
-            <CardContent className="p-4">
-              <Label className="mb-2 block">Período</Label>
-              <Tabs defaultValue="grade1" value={period} onValueChange={setPeriod} className="w-full">
-                <TabsList className="grid grid-cols-5 w-full">
-                  <TabsTrigger value="grade1">1º Bimestre</TabsTrigger>
-                  <TabsTrigger value="grade2">2º Bimestre</TabsTrigger>
-                  <TabsTrigger value="grade3">3º Bimestre</TabsTrigger>
-                  <TabsTrigger value="grade4">4º Bimestre</TabsTrigger>
-                  <TabsTrigger value="final">Final</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-2">
+            <Label className="text-sm font-medium">Período para Edição</Label>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="grade1">1º Bimestre</SelectItem>
+                <SelectItem value="grade2">2º Bimestre</SelectItem>
+                <SelectItem value="grade3">3º Bimestre</SelectItem>
+                <SelectItem value="grade4">4º Bimestre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Aluno</TableHead>
-                    <TableHead>Matrícula</TableHead>
-                    <TableHead>1º Bimestre</TableHead>
-                    <TableHead>2º Bimestre</TableHead>
-                    <TableHead>3º Bimestre</TableHead>
-                    <TableHead>4º Bimestre</TableHead>
-                    <TableHead>Média Final</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => {
-                      const subjectGrades = student.grades[selectedSubject as keyof typeof student.grades];
-                      
-                      return (
-                        <TableRow key={student.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage src={student.avatar} alt={student.name} />
-                                <AvatarFallback className="bg-primary-100 text-primary-600 dark:bg-primary-900 dark:text-primary-300">
-                                  {getUserInitials(student.name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="font-medium">{student.name}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{student.registration}</TableCell>
-                          <TableCell>
-                            {period === "grade1" && isTeacherOrAdmin ? (
-                              <Input
-                                value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade1}
-                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
-                                className="w-20"
-                              />
-                            ) : (
-                              <span className={getGradeColor(subjectGrades.grade1)}>{subjectGrades.grade1}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {period === "grade2" && isTeacherOrAdmin ? (
-                              <Input
-                                value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade2}
-                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
-                                className="w-20"
-                              />
-                            ) : (
-                              <span className={getGradeColor(subjectGrades.grade2)}>{subjectGrades.grade2}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {period === "grade3" && isTeacherOrAdmin ? (
-                              <Input
-                                value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade3}
-                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
-                                className="w-20"
-                              />
-                            ) : (
-                              <span className={getGradeColor(subjectGrades.grade3)}>{subjectGrades.grade3}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {period === "grade4" && isTeacherOrAdmin ? (
-                              <Input
-                                value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade4}
-                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
-                                className="w-20"
-                              />
-                            ) : (
-                              <span className={getGradeColor(subjectGrades.grade4)}>{subjectGrades.grade4}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className={getGradeColor(subjectGrades.final)}>
-                              {subjectGrades.final}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
-                        Nenhum aluno encontrado nesta turma.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {userType === 'student' && (
-          <div className="mt-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Meu Boletim</h2>
-            <Card>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-primary-500" />
-                      Desempenho por Disciplina
-                    </h3>
+        {/* Lista de Notas */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg border">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {SUBJECT_NAMES[selectedSubject]} - {selectedClass}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {filteredStudents.length} alunos encontrados
+            </p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Aluno</TableHead>
+                  <TableHead>Matrícula</TableHead>
+                  <TableHead className="text-center">1º Bim</TableHead>
+                  <TableHead className="text-center">2º Bim</TableHead>
+                  <TableHead className="text-center">3º Bim</TableHead>
+                  <TableHead className="text-center">4º Bim</TableHead>
+                  <TableHead className="text-center">Média</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => {
+                    const subjectGrades = student.grades[selectedSubject as keyof typeof student.grades];
                     
-                    <div className="space-y-6">
-                      {SUBJECTS.map((subject) => {
-                        const studentData = students[0]; // Mock student data for demonstration
-                        const subjectGrades = studentData.grades[subject as keyof typeof studentData.grades];
-                        const gradeColor = getGradeColor(subjectGrades.final);
-                        
-                        return (
-                          <div key={subject} className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{SUBJECT_NAMES[subject]}</p>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                Bimestres: {subjectGrades.grade1} • {subjectGrades.grade2} • {subjectGrades.grade3} • {subjectGrades.grade4}
-                              </div>
-                            </div>
-                            <div className={`text-lg font-bold ${gradeColor}`}>
-                              {subjectGrades.final}
-                            </div>
+                    return (
+                      <TableRow key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={student.avatar} alt={student.name} />
+                              <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                                {getUserInitials(student.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{student.name}</span>
                           </div>
-                        );
-                      })}
+                        </TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">
+                          {student.registration}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {period === "grade1" && isTeacherOrAdmin ? (
+                            <Input
+                              value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade1}
+                              onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                              className="w-16 text-center"
+                              placeholder="0.0"
+                            />
+                          ) : (
+                            <span className={`font-semibold ${getGradeColor(subjectGrades.grade1)}`}>
+                              {subjectGrades.grade1}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {period === "grade2" && isTeacherOrAdmin ? (
+                            <Input
+                              value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade2}
+                              onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                              className="w-16 text-center"
+                              placeholder="0.0"
+                            />
+                          ) : (
+                            <span className={`font-semibold ${getGradeColor(subjectGrades.grade2)}`}>
+                              {subjectGrades.grade2}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {period === "grade3" && isTeacherOrAdmin ? (
+                            <Input
+                              value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade3}
+                              onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                              className="w-16 text-center"
+                              placeholder="0.0"
+                            />
+                          ) : (
+                            <span className={`font-semibold ${getGradeColor(subjectGrades.grade3)}`}>
+                              {subjectGrades.grade3}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {period === "grade4" && isTeacherOrAdmin ? (
+                            <Input
+                              value={editedGrades[student.id] !== undefined ? editedGrades[student.id] : subjectGrades.grade4}
+                              onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                              className="w-16 text-center"
+                              placeholder="0.0"
+                            />
+                          ) : (
+                            <span className={`font-semibold ${getGradeColor(subjectGrades.grade4)}`}>
+                              {subjectGrades.grade4}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-bold text-lg ${getGradeColor(subjectGrades.final)}`}>
+                            {subjectGrades.final}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <BookOpen className="h-8 w-8 text-gray-400" />
+                        <span>Nenhum aluno encontrado nesta turma</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        
+        {/* Seção do Estudante */}
+        {userType === 'student' && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg border p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <BookOpen className="h-6 w-6 text-blue-600" />
+              Meu Boletim
+            </h2>
+            
+            <div className="space-y-4">
+              {SUBJECTS.map((subject) => {
+                const studentData = students[0]; // Mock student data
+                const subjectGrades = studentData.grades[subject as keyof typeof studentData.grades];
+                
+                return (
+                  <div key={subject} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {SUBJECT_NAMES[subject]}
+                      </h3>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Bimestres: {subjectGrades.grade1} • {subjectGrades.grade2} • {subjectGrades.grade3} • {subjectGrades.grade4}
+                      </div>
+                    </div>
+                    <div className={`text-2xl font-bold ${getGradeColor(subjectGrades.final)}`}>
+                      {subjectGrades.final}
                     </div>
                   </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary-500" />
-                      Relatório de Desempenho
-                    </h3>
-                    
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium">Média Geral</p>
-                        <p className="text-lg font-bold text-green-500">8.0</p>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium">Frequência</p>
-                        <p className="text-lg font-bold text-green-500">96%</p>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium">Posição na Turma</p>
-                        <p className="text-lg font-bold">3º de 32</p>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <Button className="w-full">
-                          <Download className="h-4 w-4 mr-2" />
-                          Baixar Boletim Completo
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                );
+              })}
+              
+              <div className="mt-6 pt-4 border-t">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-lg font-semibold">Média Geral:</span>
+                  <span className="text-2xl font-bold text-green-600">8.0</span>
                 </div>
-              </CardContent>
-            </Card>
+                <Button className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar Boletim Completo
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

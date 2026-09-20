@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -44,7 +44,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Download, Plus, MoreHorizontal, FileText, Edit, Trash2, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Download, Plus, MoreHorizontal, FileText, Edit, Trash2, Filter, UserCheck, BookOpen, TrendingUp, Award, Clock, CheckCircle, XCircle } from "lucide-react";
 import { getUserInitials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -96,7 +98,7 @@ const STUDENTS_DATA = [
     status: "inactive", 
     attendance: "75%", 
     average: "6.0",
-    avatar: ""
+    avatar: null
   },
   { 
     id: 5, 
@@ -108,15 +110,80 @@ const STUDENTS_DATA = [
     status: "active", 
     attendance: "94%", 
     average: "8.2",
-    avatar: ""
+     avatar: null
   },
 ];
+
+// Mock data para disciplinas
+const SUBJECTS_DATA = [
+  { id: 1, name: "Matemática", teacher: "Prof. João Silva" },
+  { id: 2, name: "Português", teacher: "Prof. Ana Costa" },
+  { id: 3, name: "História", teacher: "Prof. Carlos Santos" },
+  { id: 4, name: "Geografia", teacher: "Prof. Maria Lima" },
+  { id: 5, name: "Ciências", teacher: "Prof. Pedro Oliveira" },
+  { id: 6, name: "Educação Física", teacher: "Prof. Rafael Souza" },
+  { id: 7, name: "Artes", teacher: "Prof. Juliana Ferreira" },
+  { id: 8, name: "Inglês", teacher: "Prof. Lucas Martins" }
+];
+
+// Mock data para presenças por disciplina
+const getAttendanceData = (studentId: number) => {
+  return SUBJECTS_DATA.map(subject => ({
+    subjectId: subject.id,
+    subjectName: subject.name,
+    teacher: subject.teacher,
+    totalClasses: 20,
+    present: Math.floor(Math.random() * 15) + 15,
+    absent: Math.floor(Math.random() * 5) + 1,
+    attendanceRate: Math.floor(Math.random() * 20) + 80
+  }));
+};
+
+// Mock data para notas por disciplina
+const getGradesData = (studentId: number) => {
+  return SUBJECTS_DATA.map(subject => ({
+    subjectId: subject.id,
+    subjectName: subject.name,
+    teacher: subject.teacher,
+    quarter1: {
+      exam: Math.floor(Math.random() * 4) + 6,
+      homework: Math.floor(Math.random() * 4) + 6,
+      average: 0
+    },
+    quarter2: {
+      exam: Math.floor(Math.random() * 4) + 6,
+      homework: Math.floor(Math.random() * 4) + 6,
+      average: 0
+    },
+    quarter3: {
+      exam: Math.floor(Math.random() * 4) + 6,
+      homework: Math.floor(Math.random() * 4) + 6,
+      average: 0
+    },
+    quarter4: {
+      exam: Math.floor(Math.random() * 4) + 6,
+      homework: Math.floor(Math.random() * 4) + 6,
+      average: 0
+    },
+    generalAverage: 0
+  })).map(grade => {
+    // Calcular médias
+    grade.quarter1.average = (grade.quarter1.exam + grade.quarter1.homework) / 2;
+    grade.quarter2.average = (grade.quarter2.exam + grade.quarter2.homework) / 2;
+    grade.quarter3.average = (grade.quarter3.exam + grade.quarter3.homework) / 2;
+    grade.quarter4.average = (grade.quarter4.exam + grade.quarter4.homework) / 2;
+    grade.generalAverage = (grade.quarter1.average + grade.quarter2.average + grade.quarter3.average + grade.quarter4.average) / 4;
+    return grade;
+  });
+};
 
 export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [students, setStudents] = useState(STUDENTS_DATA);
   const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
+  const [activePanel, setActivePanel] = useState<'attendance' | 'grades'>('attendance');
   const [newStudent, setNewStudent] = useState({
     name: "",
     email: "",
@@ -130,7 +197,7 @@ export default function StudentsPage() {
   // Filter students based on search term and selected grade
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (student.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         student.registration.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesGrade = selectedGrade ? student.grade === selectedGrade : true;
@@ -391,28 +458,54 @@ export default function StudentsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-5 w-5" />
-                                <span className="sr-only">Abrir menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                                <FileText className="h-4 w-4" /> Ver detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                                <Edit className="h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
-                                onClick={() => handleDeleteStudent(student.id)}
-                              >
-                                <Trash2 className="h-4 w-4" /> Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedStudent(student.id);
+                                setActivePanel('attendance');
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              <UserCheck className="h-3 w-3" />
+                              Presença
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedStudent(student.id);
+                                setActivePanel('grades');
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              <BookOpen className="h-3 w-3" />
+                              Notas
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-5 w-5" />
+                                  <span className="sr-only">Abrir menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                                  <FileText className="h-4 w-4" /> Ver detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                                  <Edit className="h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
+                                  onClick={() => handleDeleteStudent(student.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -450,6 +543,166 @@ export default function StudentsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal de Presenças e Notas */}
+        <Dialog open={selectedStudent !== null} onOpenChange={() => setSelectedStudent(null)}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                {selectedStudent && (
+                  <>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={students.find(s => s.id === selectedStudent)?.avatar} />
+                      <AvatarFallback>
+                        {getUserInitials(students.find(s => s.id === selectedStudent)?.name || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-xl font-semibold">
+                        {students.find(s => s.id === selectedStudent)?.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {students.find(s => s.id === selectedStudent)?.grade} • 
+                        Matrícula: {students.find(s => s.id === selectedStudent)?.registration}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedStudent && (
+              <div className="space-y-6">
+                <Tabs value={activePanel} onValueChange={(value) => setActivePanel(value as 'attendance' | 'grades')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="attendance" className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Presenças e Faltas
+                    </TabsTrigger>
+                    <TabsTrigger value="grades" className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Notas por Disciplina
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="attendance" className="space-y-4">
+                    <div className="grid gap-4">
+                      {getAttendanceData(selectedStudent).map((attendance) => (
+                        <Card key={attendance.subjectId} className="border border-gray-200">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{attendance.subjectName}</CardTitle>
+                                <p className="text-sm text-gray-500">{attendance.teacher}</p>
+                              </div>
+                              <Badge 
+                                variant={attendance.attendanceRate >= 85 ? "default" : attendance.attendanceRate >= 75 ? "secondary" : "destructive"}
+                                className="text-sm"
+                              >
+                                {attendance.attendanceRate}% Frequência
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="text-center p-3 bg-green-50 rounded-lg">
+                                <div className="flex items-center justify-center gap-2 mb-1">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm font-medium text-green-800">Presentes</span>
+                                </div>
+                                <div className="text-2xl font-bold text-green-600">{attendance.present}</div>
+                                <div className="text-xs text-green-600">de {attendance.totalClasses} aulas</div>
+                              </div>
+                              <div className="text-center p-3 bg-red-50 rounded-lg">
+                                <div className="flex items-center justify-center gap-2 mb-1">
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                  <span className="text-sm font-medium text-red-800">Faltas</span>
+                                </div>
+                                <div className="text-2xl font-bold text-red-600">{attendance.absent}</div>
+                                <div className="text-xs text-red-600">de {attendance.totalClasses} aulas</div>
+                              </div>
+                              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                <div className="flex items-center justify-center gap-2 mb-1">
+                                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                                  <span className="text-sm font-medium text-blue-800">Taxa</span>
+                                </div>
+                                <div className="text-2xl font-bold text-blue-600">{attendance.attendanceRate}%</div>
+                                <div className="text-xs text-blue-600">
+                                  {attendance.attendanceRate >= 85 ? 'Excelente' : 
+                                   attendance.attendanceRate >= 75 ? 'Bom' : 'Atenção'}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="grades" className="space-y-4">
+                    <div className="grid gap-4">
+                      {getGradesData(selectedStudent).map((grade) => (
+                        <Card key={grade.subjectId} className="border border-gray-200">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{grade.subjectName}</CardTitle>
+                                <p className="text-sm text-gray-500">{grade.teacher}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {grade.generalAverage.toFixed(1)}
+                                </div>
+                                <Badge 
+                                  variant={grade.generalAverage >= 6 ? "default" : "destructive"}
+                                  className="text-xs"
+                                >
+                                  {grade.generalAverage >= 6 ? 'Aprovado' : 'Recuperação'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-4 gap-4">
+                              {[
+                                { quarter: '1º Bimestre', data: grade.quarter1 },
+                                { quarter: '2º Bimestre', data: grade.quarter2 },
+                                { quarter: '3º Bimestre', data: grade.quarter3 },
+                                { quarter: '4º Bimestre', data: grade.quarter4 }
+                              ].map(({ quarter, data }) => (
+                                <div key={quarter} className="text-center p-3 bg-gray-50 rounded-lg">
+                                  <div className="text-sm font-medium text-gray-700 mb-2">{quarter}</div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                      <span>Prova:</span>
+                                      <span className="font-medium">{data.exam}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span>Trabalho:</span>
+                                      <span className="font-medium">{data.homework}</span>
+                                    </div>
+                                    <div className="border-t pt-1 mt-1">
+                                      <div className="flex justify-between text-xs font-semibold">
+                                        <span>Média:</span>
+                                        <span className={data.average >= 6 ? 'text-green-600' : 'text-red-600'}>
+                                          {data.average.toFixed(1)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

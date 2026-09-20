@@ -1,747 +1,303 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import jsPDF from "jspdf";
+import { DownloadCloud, FileText, Users, BookOpen, AlertCircle } from "lucide-react";
+import TeacherLayout from "@/components/layout/TeacherLayout";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  DownloadCloud, 
-  BarChart3, 
-  FileText, 
-  Users, 
-  UserRound, 
-  BookOpen, 
-  GraduationCap,
-  AlertCircle
-} from "lucide-react";
-import { PerformanceChart } from "@/components/charts/PerformanceChart";
-import { GradeDistributionChart } from "@/components/charts/GradeDistributionChart";
-import { AttendanceChart } from "@/components/charts/AttendanceChart";
+import { useQuery } from "@tanstack/react-query";
 
-// Mock data - in a real application, this would be fetched from the API
-const CLASSES = [
-  "Todas",
-  "9º Ano - A",
-  "9º Ano - B",
-  "8º Ano - A",
-  "8º Ano - B",
-  "7º Ano - A",
-  "7º Ano - B",
-  "7º Ano - C",
-  "6º Ano - A",
-  "6º Ano - B"
-];
+type ReportStudent = {
+  id: string;
+  name: string;
+  birthDate?: string | null;
+  averages: { b1: number | null; b2: number | null; b3: number | null; b4: number | null };
+  average: number | null;
+  frequency: number | null;
+  situation: string;
+  attendance: { present: number; absent: number; late: number; excused: number; total: number };
+  assessments: Array<{ title: string; source: string; date?: string | null; value: number; quarter: number }>;
+};
+
+type ReportData = {
+  className: string;
+  subjectName: string;
+  academicYear: string;
+  quarter: string;
+  students: ReportStudent[];
+  summary: { totalStudents: number; average: number | null; attendanceRate: number | null; approvalRate: number | null };
+  warnings: string[];
+};
 
 const PERIODS = [
-  "1º Bimestre",
-  "2º Bimestre",
-  "3º Bimestre",
-  "4º Bimestre",
-  "Anual"
+  { value: "annual", label: "Anual" },
+  { value: "1", label: "1º Bimestre" },
+  { value: "2", label: "2º Bimestre" },
+  { value: "3", label: "3º Bimestre" },
+  { value: "4", label: "4º Bimestre" },
 ];
 
-const SUBJECTS = [
-  "Todas",
-  "Matemática",
-  "Português",
-  "Ciências",
-  "História",
-  "Geografia",
-  "Inglês",
-  "Artes",
-  "Educação Física"
-];
+const numberLabel = (value: number | null | undefined) => value == null ? "—" : value.toFixed(1);
+const percentLabel = (value: number | null | undefined) => value == null ? "—" : `${value.toFixed(1)}%`;
+const safeFilePart = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-// Sample students with low performance
-const LOW_PERFORMANCE_STUDENTS = [
-  { id: 1, name: "Ana Ferreira", class: "9º Ano - A", average: 4.8, attendance: "75%", subjects: ["Matemática", "Física"] },
-  { id: 2, name: "Pedro Santos", class: "8º Ano - C", average: 5.2, attendance: "68%", subjects: ["Português", "História"] },
-  { id: 3, name: "João Silva", class: "7º Ano - B", average: 5.5, attendance: "72%", subjects: ["Matemática"] },
-  { id: 4, name: "Mariana Oliveira", class: "6º Ano - A", average: 5.8, attendance: "70%", subjects: ["Ciências", "Geografia"] },
-  { id: 5, name: "Lucas Costa", class: "9º Ano - B", average: 4.5, attendance: "65%", subjects: ["Matemática", "Física", "Química"] }
-];
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("pt-BR");
+}
 
-// Sample attendance issues
-const ATTENDANCE_ISSUES = [
-  { id: 1, name: "Carlos Mendes", class: "8º Ano - A", attendance: "60%", consecutive_absences: 5, last_attendance: "10/07/2023" },
-  { id: 2, name: "Julia Pereira", class: "7º Ano - C", attendance: "65%", consecutive_absences: 4, last_attendance: "12/07/2023" },
-  { id: 3, name: "Roberto Lima", class: "9º Ano - B", attendance: "62%", consecutive_absences: 3, last_attendance: "11/07/2023" },
-  { id: 4, name: "Camila Ferreira", class: "6º Ano - B", attendance: "68%", consecutive_absences: 4, last_attendance: "13/07/2023" }
-];
+async function loadLogoData() {
+  const response = await fetch("/logo-transparente.png");
+  if (!response.ok) return undefined;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return `data:image/png;base64,${btoa(binary)}`;
+}
 
-// Sample class performance data
-const CLASS_PERFORMANCE = [
-  { class_name: "9º Ano - A", students: 32, average: 7.8, attendance: "92%", passing_rate: "90%" },
-  { class_name: "9º Ano - B", students: 30, average: 7.5, attendance: "88%", passing_rate: "87%" },
-  { class_name: "8º Ano - A", students: 28, average: 7.9, attendance: "90%", passing_rate: "93%" },
-  { class_name: "8º Ano - B", students: 31, average: 7.2, attendance: "85%", passing_rate: "84%" },
-  { class_name: "8º Ano - C", students: 29, average: 6.8, attendance: "80%", passing_rate: "75%" },
-  { class_name: "7º Ano - A", students: 33, average: 8.0, attendance: "93%", passing_rate: "94%" },
-  { class_name: "7º Ano - B", students: 32, average: 7.5, attendance: "89%", passing_rate: "88%" },
-  { class_name: "7º Ano - C", students: 30, average: 7.1, attendance: "84%", passing_rate: "82%" },
-  { class_name: "6º Ano - A", students: 34, average: 8.2, attendance: "95%", passing_rate: "97%" },
-  { class_name: "6º Ano - B", students: 33, average: 7.9, attendance: "91%", passing_rate: "91%" }
-];
+function renderStudentReport(doc: jsPDF, report: ReportData, student: ReportStudent, periodLabel: string, logoData?: string) {
+  const left = 15;
+  const right = 195;
+  const width = right - left;
+  // Nove limites para as oito colunas. A versão anterior tinha apenas oito
+  // limites, produzindo NaN na coluna "Situação" e interrompendo o jsPDF.
+  const columns = [left, 61, 78, 95, 112, 132, 150, 169, right];
+  const labels = ["Componente curricular", "1º Bim.", "2º Bim.", "3º Bim.", "4º Bim.", "Média", "Freq.", "Situação"];
 
-// Sample teacher performance data
-const TEACHER_PERFORMANCE = [
-  { teacher: "Marcos Silva", subject: "Matemática", classes: 5, students: 150, average: 7.5, approval_rate: "85%" },
-  { teacher: "Carla Mendes", subject: "Ciências", classes: 6, students: 180, average: 7.8, approval_rate: "88%" },
-  { teacher: "Roberto Lima", subject: "História", classes: 4, students: 120, average: 8.0, approval_rate: "90%" },
-  { teacher: "Ana Ferreira", subject: "Português", classes: 5, students: 150, average: 7.7, approval_rate: "87%" },
-  { teacher: "Pedro Santos", subject: "Geografia", classes: 4, students: 120, average: 7.9, approval_rate: "89%" }
-];
+  doc.setDrawColor(30, 64, 175);
+  doc.setFillColor(30, 64, 175);
+  doc.rect(left, 12, width, 24, "F");
+  if (logoData) {
+    try { doc.addImage(logoData, "PNG", left + 4, 14, 26, 19); } catch { /* Logo não impede a emissão. */ }
+  } else {
+    // Marca neutra para a demonstração quando a escola ainda não configurou logo.
+    doc.setFillColor(255, 255, 255);
+    doc.circle(left + 15, 24, 8, "F");
+    doc.setTextColor(30, 64, 175);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("ESCOLA", left + 15, 26, { align: "center" });
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("Boletim de Aproveitamento", 105, 22, { align: "center" });
+  doc.setFontSize(10);
+  doc.text("Relatório da disciplina emitido pelo professor", 105, 29, { align: "center" });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(190, 190, 190);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.roundedRect(left, 42, width, 31, 2, 2, "S");
+  doc.text(`Aluno(a): ${student.name}`, left + 4, 50);
+  doc.text(`Turma: ${report.className}`, left + 4, 58);
+  doc.text(`Disciplina: ${report.subjectName}`, left + 4, 66);
+  doc.text(`Ano letivo: ${report.academicYear}`, 112, 50);
+  doc.text(`Período: ${periodLabel}`, 112, 58);
+  doc.text(`Nascimento: ${formatDate(student.birthDate)}`, 112, 66);
+
+  const top = 83;
+  doc.setFillColor(235, 240, 255);
+  doc.rect(left, top, width, 10, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  labels.forEach((label, index) => {
+    const x = columns[index];
+    const columnWidth = columns[index + 1] - x;
+    doc.text(label, index === 0 ? x + 2 : x + columnWidth / 2, top + 6.5, index === 0 ? undefined : { align: "center" });
+  });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  const rowTop = top + 10;
+  doc.rect(left, rowTop, width, 12);
+  const values = [report.subjectName, numberLabel(student.averages.b1), numberLabel(student.averages.b2), numberLabel(student.averages.b3), numberLabel(student.averages.b4), numberLabel(student.average), percentLabel(student.frequency), student.situation];
+  values.forEach((value, index) => {
+    const x = columns[index];
+    const columnWidth = columns[index + 1] - x;
+    doc.text(value, index === 0 ? x + 2 : x + columnWidth / 2, rowTop + 7.5, index === 0 ? undefined : { align: "center" });
+  });
+  for (let index = 1; index < columns.length - 1; index++) doc.line(columns[index], top, columns[index], rowTop + 12);
+  doc.line(left, rowTop, right, rowTop);
+
+  const attendanceTop = 112;
+  doc.setFillColor(248, 250, 252);
+  doc.rect(left, attendanceTop, width, 15, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Frequência", left + 3, attendanceTop + 6);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Presenças: ${student.attendance.present}`, left + 3, attendanceTop + 12);
+  doc.text(`Faltas: ${student.attendance.absent}`, 67, attendanceTop + 12);
+  doc.text(`Justificadas: ${student.attendance.excused}`, 108, attendanceTop + 12);
+  doc.text(`Percentual: ${percentLabel(student.frequency)}`, 155, attendanceTop + 12);
+
+  const assessmentTop = 139;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Avaliações consideradas", left, assessmentTop);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  const assessments = student.assessments.slice().sort((first, second) => first.quarter - second.quarter || String(first.date).localeCompare(String(second.date)));
+  if (assessments.length === 0) {
+    doc.text("Nenhuma nota foi lançada para os filtros selecionados.", left + 2, assessmentTop + 8);
+  } else {
+    assessments.slice(0, 12).forEach((assessment, index) => {
+      doc.text(`${assessment.quarter}º bim. • ${assessment.source}: ${assessment.title} — ${assessment.value.toFixed(1)}`, left + 2, assessmentTop + 8 + index * 5);
+    });
+    if (assessments.length > 12) doc.text(`+ ${assessments.length - 12} avaliação(ões) no cálculo`, left + 2, assessmentTop + 71);
+  }
+
+  doc.setDrawColor(160, 160, 160);
+  doc.line(left, 267, left + 60, 267);
+  doc.line(120, 267, right, 267);
+  doc.setFontSize(8.5);
+  doc.text("Professor(a)", left + 20, 272, { align: "center" });
+  doc.text("Responsável", 157, 272, { align: "center" });
+  doc.setTextColor(90, 90, 90);
+  doc.text(`Documento emitido em ${new Date().toLocaleDateString("pt-BR")} • ${report.className} • ${report.subjectName}`, 105, 285, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+}
 
 export default function ReportsPage() {
-  const [selectedClass, setSelectedClass] = useState<string>("Todas");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("Anual");
-  const [selectedSubject, setSelectedSubject] = useState<string>("Todas");
-  const [activeTab, setActiveTab] = useState<string>("performance");
-  
-  const { toast } = useToast();
   const { user } = useAuth();
-  
-  // Get user type from the authenticated user
-  const userType = user?.role || 'admin';
-  const isCoordinatorOrAdmin = userType === 'admin' || userType === 'coordinator';
+  const { toast } = useToast();
+  const isTeacher = user?.role === "teacher";
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState("annual");
+  const [view, setView] = useState<"all" | "student">("all");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [activeTab, setActiveTab] = useState("report-card");
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleExportReport = () => {
-    toast({
-      title: "Exportando relatório",
-      description: "O relatório está sendo gerado e será baixado em instantes.",
-    });
+  const { data: classesData, isLoading: isLoadingClasses } = useQuery({
+    queryKey: ["teacher-report-classes", user?.id],
+    enabled: isTeacher && !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/teacher/${user?.id}/classes`, { credentials: "include" });
+      if (!response.ok) throw new Error("Não foi possível carregar as turmas.");
+      return response.json();
+    },
+  });
+
+  const assignments = (classesData?.data || []) as Array<{ classId: string; className: string; subjectId: string; subjectName: string }>;
+  const classes = useMemo(() => Array.from(new Map(assignments.map((item) => [item.classId, { id: item.classId, name: item.className }])).values()), [assignments]);
+  const subjects = useMemo(() => {
+    const unique = new Map<string, { id: string; name: string }>();
+    assignments.filter((item) => item.classId === selectedClass).forEach((item) => unique.set(item.subjectId, { id: item.subjectId, name: item.subjectName }));
+    return Array.from(unique.values());
+  }, [assignments, selectedClass]);
+
+  // Em perfis demonstrativos com uma única atribuição, abre o boletim pronto.
+  useEffect(() => {
+    if (!selectedClass && classes.length === 1) setSelectedClass(classes[0].id);
+  }, [classes, selectedClass]);
+  useEffect(() => {
+    if (!selectedClass) return;
+    const stillBelongsToClass = subjects.some((subject) => subject.id === selectedSubjectId);
+    if (!stillBelongsToClass) setSelectedSubjectId(subjects.length === 1 ? subjects[0].id : "");
+  }, [selectedClass, selectedSubjectId, subjects]);
+  useEffect(() => { setSelectedStudentId(""); }, [selectedClass]);
+  useEffect(() => setSelectedStudentId(""), [selectedSubjectId, selectedPeriod, view]);
+
+  const reportQuery = useQuery({
+    queryKey: ["teacher-consolidated-report", user?.id, selectedClass, selectedSubjectId, selectedPeriod],
+    enabled: isTeacher && !!user?.id && !!selectedClass && !!selectedSubjectId,
+    queryFn: async (): Promise<{ data: ReportData }> => {
+      const params = new URLSearchParams({ classId: selectedClass, subjectId: selectedSubjectId });
+      if (selectedPeriod !== "annual") params.set("quarter", selectedPeriod);
+      const response = await fetch(`/api/teacher/${user?.id}/reports/report-card?${params.toString()}`, { credentials: "include" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || "Não foi possível gerar o relatório.");
+      return body;
+    },
+  });
+
+  const report = reportQuery.data?.data;
+  const students = report?.students || [];
+  const visibleStudents = view === "student" ? students.filter((student) => student.id === selectedStudentId) : students;
+  const periodLabel = PERIODS.find((period) => period.value === selectedPeriod)?.label || "Anual";
+  const canDownload = !!report && visibleStudents.length > 0 && !reportQuery.isFetching;
+
+  const downloadReport = async () => {
+    if (!report || visibleStudents.length === 0) {
+      toast({ title: "Seleção incompleta", description: "Escolha turma, disciplina e, no modo aluno, o aluno desejado." });
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      const logoData = await loadLogoData().catch(() => undefined);
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      visibleStudents.forEach((student, index) => {
+        if (index > 0) doc.addPage();
+        renderStudentReport(doc, report, student, periodLabel, logoData);
+      });
+      const totalPages = doc.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page++) {
+        doc.setPage(page);
+        doc.setFontSize(8);
+        doc.setTextColor(90, 90, 90);
+        doc.text(`Página ${page} de ${totalPages}`, 105, 291, { align: "center" });
+      }
+      const subjectName = subjects.find((subject) => subject.id === selectedSubjectId)?.name || report.subjectName;
+      const scope = view === "student" ? visibleStudents[0].name : report.className;
+      doc.save(`Relatorio_${safeFilePart(scope)}_${safeFilePart(subjectName)}_${safeFilePart(periodLabel)}.pdf`);
+      toast({ title: "Relatório baixado", description: "O PDF foi gerado com as notas e a frequência selecionadas." });
+    } catch (error) {
+      console.error("Erro ao baixar relatório:", error);
+      toast({ title: "Falha ao gerar PDF", description: "Tente novamente. Se o problema continuar, verifique os dados da turma.", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  return (
-    <MainLayout pageTitle="Relatórios">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Relatórios e Análises</h1>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2 mt-4 sm:mt-0"
-            onClick={handleExportReport}
-          >
-            <DownloadCloud className="h-4 w-4" />
-            Exportar Relatório
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <Label htmlFor="class-select" className="mb-2 block">Turma</Label>
-              <Select 
-                value={selectedClass} 
-                onValueChange={setSelectedClass}
-              >
-                <SelectTrigger id="class-select">
-                  <SelectValue placeholder="Selecione uma turma" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLASSES.map((cls) => (
-                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <Label htmlFor="period-select" className="mb-2 block">Período</Label>
-              <Select 
-                value={selectedPeriod} 
-                onValueChange={setSelectedPeriod}
-              >
-                <SelectTrigger id="period-select">
-                  <SelectValue placeholder="Selecione um período" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODS.map((period) => (
-                    <SelectItem key={period} value={period}>{period}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <Label htmlFor="subject-select" className="mb-2 block">Disciplina</Label>
-              <Select 
-                value={selectedSubject} 
-                onValueChange={setSelectedSubject}
-              >
-                <SelectTrigger id="subject-select">
-                  <SelectValue placeholder="Selecione uma disciplina" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUBJECTS.map((subject) => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                <Users className="h-6 w-6 text-blue-500 dark:text-blue-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Alunos</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">586</h3>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                <GraduationCap className="h-6 w-6 text-green-500 dark:text-green-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Média Geral</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">7.5</h3>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
-                <UserRound className="h-6 w-6 text-yellow-500 dark:text-yellow-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Taxa de Frequência</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">88%</h3>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                <BookOpen className="h-6 w-6 text-purple-500 dark:text-purple-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Taxa de Aprovação</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">85%</h3>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Main Report Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-1 md:grid-cols-4 h-auto">
-            <TabsTrigger value="performance" className="flex items-center gap-2 py-3">
-              <BarChart3 className="h-4 w-4" />
-              <span>Desempenho</span>
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center gap-2 py-3">
-              <Users className="h-4 w-4" />
-              <span>Frequência</span>
-            </TabsTrigger>
-            <TabsTrigger value="class" className="flex items-center gap-2 py-3">
-              <BookOpen className="h-4 w-4" />
-              <span>Turmas</span>
-            </TabsTrigger>
-            {isCoordinatorOrAdmin && (
-              <TabsTrigger value="teacher" className="flex items-center gap-2 py-3">
-                <GraduationCap className="h-4 w-4" />
-                <span>Professores</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-          
-          {/* Performance Tab */}
-          <TabsContent value="performance">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Desempenho por Turma</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <PerformanceChart />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Distribuição de Notas</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <GradeDistributionChart />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  Alunos com Baixo Desempenho
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Aluno</TableHead>
-                        <TableHead>Turma</TableHead>
-                        <TableHead>Média</TableHead>
-                        <TableHead>Frequência</TableHead>
-                        <TableHead>Disciplinas Críticas</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {LOW_PERFORMANCE_STUDENTS.map((student) => (
-                        <TableRow key={student.id}>
-                          <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>{student.class}</TableCell>
-                          <TableCell className="text-red-600 dark:text-red-400">{student.average}</TableCell>
-                          <TableCell>{student.attendance}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {student.subjects.map((subject, index) => (
-                                <span 
-                                  key={index} 
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                >
-                                  {subject}
-                                </span>
-                              ))}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Attendance Tab */}
-          <TabsContent value="attendance">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Frequência por Série</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <AttendanceChart />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                    Alunos com Problemas de Frequência
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Aluno</TableHead>
-                          <TableHead>Turma</TableHead>
-                          <TableHead>Frequência</TableHead>
-                          <TableHead>Faltas Consecutivas</TableHead>
-                          <TableHead>Último Comparecimento</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {ATTENDANCE_ISSUES.map((student) => (
-                          <TableRow key={student.id}>
-                            <TableCell className="font-medium">{student.name}</TableCell>
-                            <TableCell>{student.class}</TableCell>
-                            <TableCell className="text-red-600 dark:text-red-400">{student.attendance}</TableCell>
-                            <TableCell>{student.consecutive_absences}</TableCell>
-                            <TableCell>{student.last_attendance}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Análise de Frequência por Período</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Período</TableHead>
-                        <TableHead>Dias Letivos</TableHead>
-                        <TableHead>Frequência Média</TableHead>
-                        <TableHead>Maior Frequência</TableHead>
-                        <TableHead>Menor Frequência</TableHead>
-                        <TableHead>Alunos Abaixo de 75%</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">1º Bimestre</TableCell>
-                        <TableCell>52</TableCell>
-                        <TableCell>90%</TableCell>
-                        <TableCell>6º Ano A (95%)</TableCell>
-                        <TableCell>8º Ano C (82%)</TableCell>
-                        <TableCell>5</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">2º Bimestre</TableCell>
-                        <TableCell>48</TableCell>
-                        <TableCell>88%</TableCell>
-                        <TableCell>6º Ano A (93%)</TableCell>
-                        <TableCell>8º Ano C (80%)</TableCell>
-                        <TableCell>8</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">3º Bimestre</TableCell>
-                        <TableCell>50</TableCell>
-                        <TableCell>87%</TableCell>
-                        <TableCell>7º Ano A (92%)</TableCell>
-                        <TableCell>9º Ano B (78%)</TableCell>
-                        <TableCell>10</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">4º Bimestre</TableCell>
-                        <TableCell>45</TableCell>
-                        <TableCell>85%</TableCell>
-                        <TableCell>6º Ano A (90%)</TableCell>
-                        <TableCell>8º Ano C (75%)</TableCell>
-                        <TableCell>12</TableCell>
-                      </TableRow>
-                      <TableRow className="font-medium">
-                        <TableCell className="font-bold">Anual</TableCell>
-                        <TableCell>195</TableCell>
-                        <TableCell>88%</TableCell>
-                        <TableCell>6º Ano A (93%)</TableCell>
-                        <TableCell>8º Ano C (79%)</TableCell>
-                        <TableCell>9 (média)</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Classes Tab */}
-          <TabsContent value="class">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Desempenho por Turma</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Turma</TableHead>
-                        <TableHead>Alunos</TableHead>
-                        <TableHead>Média Geral</TableHead>
-                        <TableHead>Frequência</TableHead>
-                        <TableHead>Taxa de Aprovação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {CLASS_PERFORMANCE.map((cls) => (
-                        <TableRow key={cls.class_name}>
-                          <TableCell className="font-medium">{cls.class_name}</TableCell>
-                          <TableCell>{cls.students}</TableCell>
-                          <TableCell className={cls.average >= 7 ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}>
-                            {cls.average}
-                          </TableCell>
-                          <TableCell>{cls.attendance}</TableCell>
-                          <TableCell>{cls.passing_rate}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Disciplinas com Melhor Desempenho</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium">Educação Física</span>
-                      </div>
-                      <span className="font-bold">8.7</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium">Artes</span>
-                      </div>
-                      <span className="font-bold">8.5</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium">Ciências</span>
-                      </div>
-                      <span className="font-bold">8.2</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium">História</span>
-                      </div>
-                      <span className="font-bold">7.9</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium">Geografia</span>
-                      </div>
-                      <span className="font-bold">7.8</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Disciplinas com Desempenho Crítico</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                        <span className="font-medium">Matemática</span>
-                      </div>
-                      <span className="font-bold">6.5</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                        <span className="font-medium">Física</span>
-                      </div>
-                      <span className="font-bold">6.7</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <span className="font-medium">Química</span>
-                      </div>
-                      <span className="font-bold">7.0</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <span className="font-medium">Português</span>
-                      </div>
-                      <span className="font-bold">7.2</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <span className="font-medium">Inglês</span>
-                      </div>
-                      <span className="font-bold">7.3</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          {/* Teachers Tab (only for admin and coordinator) */}
-          {isCoordinatorOrAdmin && (
-            <TabsContent value="teacher">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">Desempenho por Professor</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Professor</TableHead>
-                          <TableHead>Disciplina</TableHead>
-                          <TableHead>Turmas</TableHead>
-                          <TableHead>Alunos</TableHead>
-                          <TableHead>Média das Turmas</TableHead>
-                          <TableHead>Taxa de Aprovação</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {TEACHER_PERFORMANCE.map((teacher, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{teacher.teacher}</TableCell>
-                            <TableCell>{teacher.subject}</TableCell>
-                            <TableCell>{teacher.classes}</TableCell>
-                            <TableCell>{teacher.students}</TableCell>
-                            <TableCell className={teacher.average >= 7.5 ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}>
-                              {teacher.average}
-                            </TableCell>
-                            <TableCell>{teacher.approval_rate}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg font-medium">Observações e Recomendações</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Áreas de Atenção</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-gray-600 dark:text-gray-400 text-sm">
-                          <li>Matemática apresenta o menor desempenho geral, com média de 6.5.</li>
-                          <li>A turma 8º Ano C apresenta a menor frequência (80%) e taxa de aprovação (75%).</li>
-                          <li>14 alunos estão com frequência abaixo de 75% e precisam de atenção imediata.</li>
-                          <li>Observa-se queda de frequência no 4º bimestre (85%) em comparação ao 1º bimestre (90%).</li>
-                        </ul>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Recomendações</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-gray-600 dark:text-gray-400 text-sm">
-                          <li>Implementar reforço escolar para alunos com baixo desempenho em Matemática e Física.</li>
-                          <li>Realizar reunião específica com responsáveis de alunos com baixa frequência.</li>
-                          <li>Desenvolver estratégias para manter o engajamento dos alunos no 4º bimestre.</li>
-                          <li>Analisar práticas pedagógicas da turma 6º Ano A para replicar nas demais (melhor desempenho).</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg font-medium">Comparativo Anual</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Média Geral</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2023</span>
-                            <span className="font-medium">7.5</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-blue-500 rounded-full" style={{ width: "75%" }}></div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2022</span>
-                            <span className="font-medium">7.2</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-blue-500 rounded-full" style={{ width: "72%" }}></div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2021</span>
-                            <span className="font-medium">7.0</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-blue-500 rounded-full" style={{ width: "70%" }}></div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Taxa de Aprovação</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2023</span>
-                            <span className="font-medium">85%</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-green-500 rounded-full" style={{ width: "85%" }}></div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2022</span>
-                            <span className="font-medium">82%</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-green-500 rounded-full" style={{ width: "82%" }}></div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm">
-                            <span>2021</span>
-                            <span className="font-medium">80%</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div className="h-2 bg-green-500 rounded-full" style={{ width: "80%" }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          )}
-        </Tabs>
-        
-        <div className="mt-6 flex justify-end">
-          <Button className="flex items-center gap-2" onClick={handleExportReport}>
-            <FileText className="h-4 w-4" />
-            Gerar Relatório Completo
-          </Button>
-        </div>
+  const content = (
+    <div className="container mx-auto space-y-6 px-4 py-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Relatórios</h1><p className="text-sm text-gray-600 dark:text-gray-300">Notas de provas, atividades avaliadas e frequência da sua disciplina.</p></div>
+        <Button onClick={downloadReport} disabled={!canDownload || isDownloading} className="bg-blue-700 hover:bg-blue-800"><DownloadCloud className="mr-2 h-4 w-4" />{isDownloading ? "Gerando PDF..." : "Baixar relatório"}</Button>
       </div>
-    </MainLayout>
+
+      <Card><CardContent className="grid grid-cols-1 gap-4 p-5 md:grid-cols-4">
+        <div><Label>Turma</Label><Select value={selectedClass} onValueChange={setSelectedClass} disabled={isLoadingClasses}><SelectTrigger><SelectValue placeholder={isLoadingClasses ? "Carregando..." : "Selecione a turma"} /></SelectTrigger><SelectContent>{classes.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Disciplina</Label><Select value={selectedSubjectId} onValueChange={setSelectedSubjectId} disabled={!selectedClass}><SelectTrigger><SelectValue placeholder={selectedClass ? "Selecione a disciplina" : "Escolha a turma primeiro"} /></SelectTrigger><SelectContent>{subjects.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Período</Label><Select value={selectedPeriod} onValueChange={setSelectedPeriod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PERIODS.map((period) => <SelectItem key={period.value} value={period.value}>{period.label}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Visualização</Label><Select value={view} onValueChange={(value: "all" | "student") => setView(value)} disabled={!report}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os alunos</SelectItem><SelectItem value="student">Um aluno</SelectItem></SelectContent></Select></div>
+        {view === "student" && <div className="md:col-span-2"><Label>Aluno</Label><Select value={selectedStudentId} onValueChange={setSelectedStudentId} disabled={!report}><SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger><SelectContent>{students.map((student) => <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>)}</SelectContent></Select></div>}
+      </CardContent></Card>
+
+      {!selectedClass || !selectedSubjectId ? (
+        <Card><CardContent className="p-8 text-center text-gray-600 dark:text-gray-300"><BookOpen className="mx-auto mb-3 h-8 w-8 text-blue-600" />Selecione a turma e a disciplina para carregar um relatório real.</CardContent></Card>
+      ) : reportQuery.isLoading ? (
+        <Card><CardContent className="p-8 text-center text-gray-600">Carregando dados do relatório...</CardContent></Card>
+      ) : reportQuery.isError ? (
+        <Card><CardContent className="p-8 text-center text-red-700">{reportQuery.error instanceof Error ? reportQuery.error.message : "Não foi possível carregar o relatório."}</CardContent></Card>
+      ) : report && <>
+        {report.warnings.length > 0 && <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20"><CardContent className="flex gap-3 p-4 text-amber-900 dark:text-amber-200"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><div>{report.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></CardContent></Card>}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card><CardContent className="p-5"><p className="text-sm text-gray-500">Alunos</p><p className="text-2xl font-bold">{report.summary.totalStudents}</p></CardContent></Card>
+          <Card><CardContent className="p-5"><p className="text-sm text-gray-500">Média da disciplina</p><p className="text-2xl font-bold">{numberLabel(report.summary.average)}</p></CardContent></Card>
+          <Card><CardContent className="p-5"><p className="text-sm text-gray-500">Frequência média</p><p className="text-2xl font-bold">{percentLabel(report.summary.attendanceRate)}</p></CardContent></Card>
+          <Card><CardContent className="p-5"><p className="text-sm text-gray-500">Aprovação</p><p className="text-2xl font-bold">{percentLabel(report.summary.approvalRate)}</p></CardContent></Card>
+        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="report-card"><FileText className="mr-2 h-4 w-4" />Boletins</TabsTrigger><TabsTrigger value="attendance"><Users className="mr-2 h-4 w-4" />Frequência</TabsTrigger></TabsList>
+          <TabsContent value="report-card"><Card><CardHeader><CardTitle>Notas por bimestre — {report.subjectName}</CardTitle></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Aluno</TableHead><TableHead>1º</TableHead><TableHead>2º</TableHead><TableHead>3º</TableHead><TableHead>4º</TableHead><TableHead>Média</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{visibleStudents.length === 0 ? <TableRow><TableCell colSpan={7} className="py-8 text-center text-gray-500">Selecione um aluno para visualizar o boletim.</TableCell></TableRow> : visibleStudents.map((student) => <TableRow key={student.id}><TableCell className="font-medium">{student.name}</TableCell><TableCell>{numberLabel(student.averages.b1)}</TableCell><TableCell>{numberLabel(student.averages.b2)}</TableCell><TableCell>{numberLabel(student.averages.b3)}</TableCell><TableCell>{numberLabel(student.averages.b4)}</TableCell><TableCell>{numberLabel(student.average)}</TableCell><TableCell>{student.situation}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card></TabsContent>
+          <TabsContent value="attendance"><Card><CardHeader><CardTitle>Frequência — {report.subjectName}</CardTitle></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Aluno</TableHead><TableHead>Presenças</TableHead><TableHead>Faltas</TableHead><TableHead>Justificadas</TableHead><TableHead>Frequência</TableHead></TableRow></TableHeader><TableBody>{visibleStudents.length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-gray-500">Selecione um aluno para visualizar a frequência.</TableCell></TableRow> : visibleStudents.map((student) => <TableRow key={student.id}><TableCell className="font-medium">{student.name}</TableCell><TableCell>{student.attendance.present}</TableCell><TableCell>{student.attendance.absent}</TableCell><TableCell>{student.attendance.excused}</TableCell><TableCell>{percentLabel(student.frequency)}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card></TabsContent>
+        </Tabs>
+        <div className="flex justify-end"><Button onClick={downloadReport} disabled={!canDownload || isDownloading} className="bg-blue-700 hover:bg-blue-800"><DownloadCloud className="mr-2 h-4 w-4" />{view === "student" ? "Baixar boletim do aluno" : "Baixar boletins da turma"}</Button></div>
+      </>}
+    </div>
   );
+
+  if (isTeacher) return <TeacherLayout>{content}</TeacherLayout>;
+  return <MainLayout pageTitle="Relatórios">{content}</MainLayout>;
 }

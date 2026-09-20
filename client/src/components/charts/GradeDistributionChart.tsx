@@ -5,7 +5,7 @@ import { useTheme } from '@/components/ThemeProvider';
 // Register all Chart.js components
 Chart.register(...registerables);
 
-export function GradeDistributionChart() {
+export function GradeDistributionChart({ buckets }: { buckets?: number[] }) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
   const { theme } = useTheme();
@@ -24,13 +24,13 @@ export function GradeDistributionChart() {
         const textColor = theme === 'dark' ? '#e5e7eb' : '#4b5563';
         const gridColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(209, 213, 219, 0.5)';
         
-        // Sample data - in a real app, this would come from an API
+        const values = buckets && buckets.length === 5 ? buckets : [5,25,140,320,96];
         const data = {
-          labels: ['0-2', '2-4', '4-6', '6-8', '8-10'],
+          labels: ['0-2','2-4','4-6','6-8','8-10'],
           datasets: [
             {
               label: 'Número de Alunos',
-              data: [5, 25, 140, 320, 96],
+              data: values,
               backgroundColor: [
                 'rgba(239, 68, 68, 0.7)',
                 'rgba(245, 158, 11, 0.7)',
@@ -127,7 +127,7 @@ export function GradeDistributionChart() {
         chartInstance.current.destroy();
       }
     };
-  }, [theme]); // Re-render chart when theme changes
+  }, [theme, buckets]);
   
   return <canvas ref={chartRef} />;
 }

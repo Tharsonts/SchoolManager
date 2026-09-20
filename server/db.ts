@@ -1,15 +1,25 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import 'dotenv/config';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
+import * as schema from "../shared/schema";
+import path from 'path';
+import fs from 'fs';
 
-neonConfig.webSocketConstructor = ws;
+// Usa um caminho estável tanto no TSX local quanto no bundle de produção.
+const dataDirectory = path.resolve(process.cwd(), 'server');
+const dbPath = path.join(dataDirectory, 'school.db');
+const demoTemplatePath = path.join(dataDirectory, 'demo-template.db');
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Em uma instalação nova (incluindo hospedagens de demonstração), inicia com
+// uma base sanitizada contendo apenas os cinco perfis e dados acadêmicos demo.
+if (!fs.existsSync(dbPath) && fs.existsSync(demoTemplatePath)) {
+  fs.copyFileSync(demoTemplatePath, dbPath);
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+const client = createClient({
+  // Usar caminho absoluto para evitar cair no school.db da raiz
+  url: `file:${dbPath}`,
+});
+
+// Ativar logger do Drizzle para inspecionar SQL executado (ajuda a depurar erros "near =")
+export const db = drizzle(client, { schema, logger: true });
