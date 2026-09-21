@@ -124,7 +124,11 @@ export default function ReportCardPage() {
           <CardHeader className="bg-blue-50 dark:bg-blue-900/20 print:bg-white">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
-                <img src="/assets/logo.png" alt="Logo" className="h-16 w-16 object-contain" />
+                <img
+                  src={`${import.meta.env.BASE_URL}assets/schoolmanager-report-card-logo.png`}
+                  alt="Emblema acadêmico do SchoolManager"
+                  className="h-16 w-16 object-contain drop-shadow-sm"
+                />
                 <div>
                   <CardTitle className="text-2xl">Boletim Escolar</CardTitle>
                   <CardDescription>{classInfo?.data?.className || 'Turma'}</CardDescription>

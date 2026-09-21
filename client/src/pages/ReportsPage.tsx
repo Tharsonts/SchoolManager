@@ -54,7 +54,7 @@ function formatDate(value?: string | null) {
 }
 
 async function loadLogoData() {
-  const response = await fetch("/logo-transparente.png");
+  const response = await fetch(`${import.meta.env.BASE_URL}assets/schoolmanager-report-card-logo.png`);
   if (!response.ok) return undefined;
   const bytes = new Uint8Array(await response.arrayBuffer());
   let binary = "";
@@ -75,7 +75,7 @@ function renderStudentReport(doc: jsPDF, report: ReportData, student: ReportStud
   doc.setFillColor(30, 64, 175);
   doc.rect(left, 12, width, 24, "F");
   if (logoData) {
-    try { doc.addImage(logoData, "PNG", left + 4, 14, 26, 19); } catch { /* Logo não impede a emissão. */ }
+    try { doc.addImage(logoData, "PNG", left + 5, 14.5, 19, 19); } catch { /* Logo não impede a emissão. */ }
   } else {
     // Marca neutra para a demonstração quando a escola ainda não configurou logo.
     doc.setFillColor(255, 255, 255);
