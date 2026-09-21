@@ -13,6 +13,7 @@ import { useStudentClassInfo } from "@/hooks/useStudentApi";
 import jsPDF from "jspdf";
 
 const REPORT_LOGO_URL = `${import.meta.env.BASE_URL}assets/schoolmanager-report-card-logo.png`;
+const numberLabel = (value?: number | null) => value == null ? '—' : value.toFixed(1);
 
 async function loadReportLogo() {
   const response = await fetch(REPORT_LOGO_URL);
