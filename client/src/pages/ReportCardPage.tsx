@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +119,6 @@ export default function ReportCardPage() {
   };
 
   return (
-    <MainLayout pageTitle="Boletim Escolar">
       <div className="space-y-6">
         <Card className="border-2 border-blue-500 print:border-none">
           <CardHeader className="bg-blue-50 dark:bg-blue-900/20 print:bg-white">
@@ -338,6 +336,5 @@ export default function ReportCardPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
   );
 }
