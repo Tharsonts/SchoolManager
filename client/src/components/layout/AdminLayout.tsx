@@ -91,19 +91,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile top bar */}
-      <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setIsSidebarOpen(true)}>
+      <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setIsSidebarOpen(true)}>
           <span className="sr-only">Abrir menu</span>
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </Button>
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={user?.avatar} />
             <AvatarFallback className="bg-purple-100 text-purple-700">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">{user?.firstName}</span>
+          <span className="truncate text-sm font-medium">{user?.firstName}</span>
         </div>
       </div>
       {/* Sidebar */}
@@ -221,7 +221,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <div className="lg:ml-64">
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="min-w-0 p-4 sm:p-6">
           {children}
         </main>
       </div>

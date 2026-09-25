@@ -390,14 +390,14 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Administrativo</h1>
-          <p className="text-gray-600 mt-1">Gerencie usuários, turmas e disciplinas</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl">Dashboard Administrativo</h1>
+          <p className="text-sm text-gray-600 mt-1 sm:text-base">Gerencie usuários, turmas e disciplinas</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex shrink-0 gap-3">
           <Button 
-            className="bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-purple-600 hover:bg-purple-700 sm:w-auto"
             onClick={handleCreateClass}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -456,14 +456,14 @@ const DashboardPage = () => {
       {/* Recent Users Section */}
       <Card className="border border-gray-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg font-semibold">Usuários Recentes</CardTitle>
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="relative min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input 
                   placeholder="Buscar usuários..." 
-                  className="pl-10 w-64"
+                  className="w-full pl-10 sm:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
