@@ -64,7 +64,7 @@ const DirectorLayout: React.FC<DirectorLayoutProps> = ({ children }) => {
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col director-sidebar shadow-xl overflow-y-auto max-h-screen">
+        <div className="fixed inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col director-sidebar shadow-xl overflow-y-auto">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center">
               <Home className="h-8 w-8 text-white" />
@@ -103,19 +103,19 @@ const DirectorLayout: React.FC<DirectorLayoutProps> = ({ children }) => {
       </div>
 
       {/* Mobile top bar */}
-      <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)}>
+      <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" className="h-12 w-12 shrink-0 p-0" onClick={() => setSidebarOpen(true)}>
           <span className="sr-only">Abrir menu</span>
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={user?.profileImageUrl || ''} />
             <AvatarFallback className="bg-gray-100 text-gray-700">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">{user?.firstName}</span>
+          <span className="truncate text-sm font-medium">{user?.firstName}</span>
         </div>
       </div>
 

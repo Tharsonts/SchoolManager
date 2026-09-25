@@ -83,11 +83,11 @@ const CoordinatorDashboard: React.FC = () => {
     .slice(0, 6);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Coordenador</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl">Dashboard Coordenador</h1>
           <p className="text-gray-600">Visão geral do sistema escolar</p>
         </div>
         <div className="flex items-center space-x-2">

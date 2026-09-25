@@ -183,6 +183,8 @@ function Router() {
           </StudentLayout>
         ) : userRole === 'teacher' ? (
           <Redirect to="/teacher/dashboard" />
+        ) : userRole === 'coordinator' ? (
+          <Redirect to="/coordinator/dashboard" />
         ) : (
           <DashboardPage />
         )}
@@ -202,6 +204,8 @@ function Router() {
           </StudentLayout>
         ) : userRole === 'teacher' ? (
           <Redirect to="/teacher/dashboard" />
+        ) : userRole === 'coordinator' ? (
+          <Redirect to="/coordinator/dashboard" />
         ) : (
           <DashboardPage />
         )}
@@ -860,68 +864,68 @@ function Router() {
       {/* === ROTAS PARA COORDENADOR === */}
       <Route path="/coordinator/dashboard">
         <ProtectedRoute allowedRoles={['coordinator', 'admin', 'teacher']} currentUserRole={userRole}>
-          <CoordinatorDashboard />
+          <MainLayout pageTitle="Dashboard do coordenador"><CoordinatorDashboard /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/approvals">
         <ProtectedRoute allowedRoles={['coordinator', 'admin', 'teacher']} currentUserRole={userRole}>
-          <CoordinatorApprovals />
+          <MainLayout pageTitle="Aprovações"><CoordinatorApprovals /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/activities">
         <ProtectedRoute allowedRoles={['coordinator', 'admin', 'teacher']} currentUserRole={userRole}>
-          <CoordinatorActivities />
+          <MainLayout pageTitle="Atividades"><CoordinatorActivities /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/teachers">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorTeachers />
+          <MainLayout pageTitle="Professores"><CoordinatorTeachers /></MainLayout>
         </ProtectedRoute>
       </Route>
 
 
       <Route path="/coordinator/reports">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorReports />
+          <MainLayout pageTitle="Relatórios"><CoordinatorReports /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/academic-calendar">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorAcademicCalendar />
+          <MainLayout pageTitle="Calendário acadêmico"><CoordinatorAcademicCalendar /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/classes">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorClasses />
+          <MainLayout pageTitle="Turmas"><CoordinatorClasses /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/students">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorStudents />
+          <MainLayout pageTitle="Alunos"><CoordinatorStudents /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/performance">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorPerformance />
+          <MainLayout pageTitle="Desempenho"><CoordinatorPerformance /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/logs">
         <ProtectedRoute allowedRoles={['admin']} currentUserRole={userRole}>
-          <CoordinatorLogs />
+          <MainLayout pageTitle="Logs"><CoordinatorLogs /></MainLayout>
         </ProtectedRoute>
       </Route>
 
       <Route path="/coordinator/chat">
         <ProtectedRoute allowedRoles={['coordinator', 'admin']} currentUserRole={userRole}>
-          <CoordinatorChat />
+          <MainLayout pageTitle="Chat"><CoordinatorChat /></MainLayout>
         </ProtectedRoute>
       </Route>
 

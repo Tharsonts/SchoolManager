@@ -2,7 +2,7 @@
 
 **Demonstração online:** [schoolmanager-demo.onrender.com](https://schoolmanager-demo.onrender.com). O serviço gratuito pode levar cerca de um minuto para abrir após um período sem acessos. Os dados cadastrados nessa demonstração voltam à base inicial quando o serviço reinicia; não use a demonstração para guardar dados reais.
 
-**Android:** [baixar APK de demonstração](https://github.com/Tharsonts/SchoolManager/releases/download/v1.0.1-demo/SchoolManager-Demo.apk). O aplicativo abre a demonstração online e precisa de internet.
+**Android:** [baixar APK de demonstração](https://github.com/Tharsonts/SchoolManager/releases/download/v1.0.2-demo/SchoolManager-Demo.apk). O aplicativo abre a demonstração online e precisa de internet.
 
 <p align="center">
   <strong>Plataforma completa de gestão escolar desenvolvida como Trabalho de Conclusão de Curso.</strong>
@@ -50,7 +50,7 @@ Mais do que uma interface conceitual, o projeto evoluiu para um sistema funciona
 
 O assistente utiliza WebLLM e é processado diretamente no dispositivo do visitante. Não existe chave de API no repositório e as conversas não são enviadas para uma API externa.
 
-No primeiro uso, o navegador baixa o modelo local. Por isso, essa funcionalidade exige um navegador recente com WebGPU e pode consumir alguns gigabytes de armazenamento. Chrome e Edge são as opções recomendadas.
+Em computadores, no primeiro uso o navegador baixa o modelo local. Essa funcionalidade exige um navegador recente com WebGPU e pode consumir alguns gigabytes de armazenamento. Chrome e Edge são as opções recomendadas. Em celulares, o assistente permanece visível, mas o download e o uso do modelo estão desativados.
 
 ## Acessos de demonstração
 

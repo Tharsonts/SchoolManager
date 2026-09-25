@@ -93,19 +93,19 @@ function TeacherLayout({ children, immersive = false }: TeacherLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)}>
+      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" className="h-12 w-12 shrink-0 p-0" onClick={() => setMobileOpen(true)}>
           <span className="sr-only">Abrir menu</span>
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </Button>
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={user?.profileImageUrl} />
             <AvatarFallback className="bg-blue-100 text-blue-700">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">{user?.firstName}</span>
+          <span className="truncate text-sm font-medium">{user?.firstName}</span>
         </div>
       </div>
       {/* Sidebar (desktop) */}
@@ -222,13 +222,14 @@ function TeacherLayout({ children, immersive = false }: TeacherLayoutProps) {
       {/* Mobile menu panel */}
       <div className={`md:hidden fixed inset-0 z-50 ${mobileOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setMobileOpen(false)} />
-        <div className="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-blue-900 to-blue-800 shadow-lg overflow-y-auto max-h-screen">
+        <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-gradient-to-b from-blue-900 to-blue-800 shadow-lg overflow-y-auto">
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-center border-b border-blue-700">
+            <div className="flex h-16 items-center justify-between border-b border-blue-700 px-4">
               <div className="flex items-center space-x-2">
                 <GraduationCap className="h-8 w-8 text-white" />
                 <span className="text-xl font-bold text-white">Sistema Escolar</span>
               </div>
+              <Button variant="ghost" size="sm" className="h-11 w-11 p-0 text-white" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">×</Button>
             </div>
             <div className="border-b border-blue-700 p-4">
               <div className="flex items-center space-x-3">
@@ -364,7 +365,7 @@ function TeacherLayout({ children, immersive = false }: TeacherLayoutProps) {
         </header>}
 
         {/* Page Content */}
-        <main className={immersive ? "h-screen overflow-hidden p-0" : "p-6"}>
+                <main className={immersive ? "h-[calc(100dvh-4rem)] overflow-hidden p-0 md:h-dvh" : "p-4 sm:p-6"}>
           {children}
         </main>
       </div>

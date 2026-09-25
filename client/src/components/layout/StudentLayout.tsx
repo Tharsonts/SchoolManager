@@ -214,25 +214,30 @@ function StudentLayout({ children }: StudentLayoutProps) {
       </div>
 
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)}>
+      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" className="h-12 w-12 shrink-0 p-0" onClick={() => setMobileOpen(true)}>
           <span className="sr-only">Abrir menu</span>
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </Button>
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={user?.profileImageUrl} />
             <AvatarFallback className="bg-green-100 text-green-700">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">{user?.firstName}</span>
+          <span className="truncate text-sm font-medium">{user?.firstName}</span>
         </div>
       </div>
 
-      {/* Mobile menu panel (slides, não cobre a tela inteira) */}
-      <div className={`md:hidden fixed left-2 top-14 z-50 w-64 max-w-[80%] rounded-lg shadow-lg bg-gradient-to-b from-green-900 to-green-800 transition-all duration-200 ${mobileOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-[110%] pointer-events-none'}`}>
-        <div className="p-3">
+      {/* Mobile sidebar */}
+      {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMobileOpen(false)} />}
+      <div className={`md:hidden fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-gradient-to-b from-green-900 to-green-800 shadow-xl transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex-1 p-4">
+          <div className="mb-4 flex items-center justify-between text-white">
+            <span className="font-semibold">Menu do aluno</span>
+            <Button variant="ghost" size="sm" className="h-11 w-11 p-0 text-white" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">×</Button>
+          </div>
           <div className="flex items-center gap-2 mb-3">
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.profileImageUrl} />
@@ -252,7 +257,7 @@ function StudentLayout({ children }: StudentLayoutProps) {
                 <button
                   key={item.name}
                   onClick={() => { setMobileOpen(false); navigate(item.href); }}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${item.current ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700 hover:text-white'}`}
+                  className={`w-full min-h-11 flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${item.current ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700 hover:text-white'}`}
                 >
                   <Icon className="mr-3 h-5 w-5" />{item.name}
                 </button>
@@ -289,5 +294,4 @@ function StudentLayout({ children }: StudentLayoutProps) {
 }
 
 export default StudentLayout;
-
 

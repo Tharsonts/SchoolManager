@@ -103,7 +103,7 @@ export function AppSidebar({ isOpen, onClose, onInstructionsClick }: AppSidebarP
       {
         title: 'PRINCIPAL',
         items: [
-          { icon: BarChart3, label: 'Dashboard', path: '/dashboard' }
+          { icon: BarChart3, label: 'Dashboard', path: isCoordinator ? '/coordinator/dashboard' : '/dashboard' }
         ]
       }
     ];
@@ -222,7 +222,7 @@ export function AppSidebar({ isOpen, onClose, onInstructionsClick }: AppSidebarP
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 ${isCoordinator ? 'bg-gradient-to-b from-red-900 to-red-800' : 'bg-slate-900'} transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] overflow-y-auto ${isCoordinator ? 'bg-gradient-to-b from-red-900 to-red-800' : 'bg-slate-900'} transform transition-transform duration-300 ease-in-out lg:w-64 lg:max-w-none lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
@@ -274,7 +274,7 @@ export function AppSidebar({ isOpen, onClose, onInstructionsClick }: AppSidebarP
                 )}
                 <div className="space-y-1">
                   {section.items ? section.items.map((item, itemIndex) => (
-                    <Link key={itemIndex} href={item.path}>
+                    <Link key={itemIndex} href={item.path} onClick={onClose}>
                       <Button
                         variant="ghost"
                         className={`w-full justify-start text-left h-10 px-3 ${
@@ -288,7 +288,7 @@ export function AppSidebar({ isOpen, onClose, onInstructionsClick }: AppSidebarP
                       </Button>
                     </Link>
                   )) : (section.path ? (
-                    <Link href={section.path}>
+                    <Link href={section.path} onClick={onClose}>
                       <Button
                         variant="ghost"
                         className={`w-full justify-start text-left h-10 px-3 ${

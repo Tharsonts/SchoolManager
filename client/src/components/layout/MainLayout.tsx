@@ -4,6 +4,8 @@ import { useLocation } from "wouter";
 import InstructionsModal from "@/components/ui/InstructionsModal";
 import CoordinatorInstructionModal from "@/components/instructions/CoordinatorInstructionModal";
 import { AppSidebar } from "./AppSidebar";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -54,11 +56,18 @@ export function MainLayout({ children, pageTitle }: MainLayoutProps) {
         onInstructionsClick={() => setShowInstructions(true)}
       />
 
+      <div className="sticky top-0 z-30 flex items-center gap-3 border-b bg-white px-4 py-2 lg:hidden">
+        <Button variant="ghost" size="sm" className="h-12 w-12 p-0" onClick={() => setIsSidebarOpen(true)} aria-label="Abrir menu">
+          <Menu className="h-6 w-6" />
+        </Button>
+        <span className="min-w-0 truncate font-medium text-slate-800">{pageTitle}</span>
+      </div>
+
       {/* Main Content */}
       <div className="lg:ml-64">
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="min-w-0 p-4 sm:p-6">
           {children}
         </main>
       </div>

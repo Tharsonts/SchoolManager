@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
-import { askLocalTeacherAI, loadLocalTeacherAI, LOCAL_AI_VRAM_MB, supportsLocalAI, unloadLocalTeacherAI, type LocalAIProgress } from "@/lib/localTeacherAI";
+import { askLocalTeacherAI, isMobileAIBlocked, loadLocalTeacherAI, LOCAL_AI_VRAM_MB, supportsLocalAI, unloadLocalTeacherAI, type LocalAIProgress } from "@/lib/localTeacherAI";
 
 type Message = { id: string; role: "user" | "assistant"; content: string; timestamp: Date };
 type TeacherAIChatProps = { isOpen: boolean; onClose: () => void };
@@ -60,6 +60,7 @@ export default function TeacherAIChat({ isOpen, onClose }: TeacherAIChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const webGPUAvailable = useMemo(() => supportsLocalAI(), []);
+  const mobileBlocked = useMemo(() => isMobileAIBlocked(), []);
 
   useEffect(() => {
     if (!isOpen || messages.length > 0) return;
@@ -119,6 +120,14 @@ export default function TeacherAIChat({ isOpen, onClose }: TeacherAIChatProps) {
   };
 
   if (!isOpen) return null;
+  if (mobileBlocked) return <div className="flex h-full min-h-0 items-center justify-center bg-slate-50 p-4">
+    <Card className="w-full max-w-md p-6 text-center shadow-sm">
+      <Bot className="mx-auto mb-4 h-10 w-10 text-blue-700" />
+      <h1 className="text-xl font-semibold text-slate-900">Assistente indisponível no celular</h1>
+      <p className="mt-3 text-sm leading-relaxed text-slate-600">O modelo local exige muita memória e pode falhar em celulares. Abra o School Manager em um computador para usar esta função.</p>
+      <Button className="mt-5 w-full" onClick={onClose}>Voltar ao painel</Button>
+    </Card>
+  </div>;
   const isLoadingModel = modelProgress.progress > 0 && modelProgress.progress < 1 && !modelError;
 
   return (

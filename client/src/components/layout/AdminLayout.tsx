@@ -168,7 +168,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       {item.label}
                     </Button>
                   ) : (
-                    <Link key={itemIndex} href={item.path}>
+                    <Link key={itemIndex} href={item.path} onClick={() => setIsSidebarOpen(false)}>
                       <Button
                         variant="ghost"
                         className={`w-full justify-start text-left h-10 px-3 ${

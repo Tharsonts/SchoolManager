@@ -7,11 +7,21 @@ type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 let enginePromise: Promise<any> | null = null;
 let loadedEngine: any | null = null;
 
+export function isMobileAIBlocked() {
+  if (typeof navigator === "undefined") return false;
+  const agent = navigator.userAgent || "";
+  return /Android|iPhone|iPod|Mobile/i.test(agent) ||
+    (typeof window !== "undefined" && window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches);
+}
+
 export function supportsLocalAI() {
-  return typeof navigator !== "undefined" && "gpu" in navigator;
+  return !isMobileAIBlocked() && typeof navigator !== "undefined" && "gpu" in navigator;
 }
 
 export async function loadLocalTeacherAI(onProgress?: (progress: LocalAIProgress) => void) {
+  if (isMobileAIBlocked()) {
+    throw new Error("O assistente local está indisponível em celulares. Use um computador para ativá-lo.");
+  }
   if (!supportsLocalAI()) {
     throw new Error("Este navegador não oferece WebGPU. Abra a demonstração em uma versão recente do Chrome ou Edge.");
   }
