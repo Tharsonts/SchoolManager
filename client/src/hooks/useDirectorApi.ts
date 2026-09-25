@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = '';
 
 // Hook para buscar aprovações pendentes
 export const usePendingApprovals = () => {

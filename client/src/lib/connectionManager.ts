@@ -1,5 +1,4 @@
-// Gerenciador de conexão híbrido para o app
-import { alternativeTunnelManager, type TunnelProvider } from './alternativeTunnels';
+// Gerenciador de conexão para a instalação web e o aplicativo.
 
 export class ConnectionManager {
   private static instance: ConnectionManager;
@@ -8,16 +7,10 @@ export class ConnectionManager {
   private connectionType: 'global' | 'local' | 'dev' | 'unknown' = 'unknown';
   private lastConnectionCheck: number = 0;
   private connectionCheckInterval: number = 30000; // 30 segundos
-  private currentTunnelProvider: TunnelProvider | null = null;
-  
-  // URLs possíveis em ordem de prioridade (incluindo alternativas de túnel)
+  // O endereço público permanece disponível mesmo com o computador desligado.
   private readonly urls = [
-    { url: 'https://schoolmanager-demo.trycloudflare.com', type: 'global' as const }, // Cloudflare Tunnel
-    { url: 'https://schoolmanager-demo.pinggy.io', type: 'global' as const },         // Pinggy
-    { url: 'https://schoolmanager-demo.serveo.net', type: 'global' as const },        // Serveo
-    { url: 'https://schoolmanager-demo.loca.lt', type: 'global' as const },           // LocalTunnel (fallback)
-    { url: 'http://192.168.2.47:3001', type: 'local' as const },                     // IP local (mesma rede)
-    { url: 'http://localhost:3001', type: 'dev' as const }                           // Localhost (desenvolvimento)
+    { url: 'https://schoolmanager-demo.onrender.com', type: 'global' as const },
+    { url: 'http://localhost:3001', type: 'dev' as const }
   ];
 
   private constructor() {
@@ -67,15 +60,7 @@ export class ConnectionManager {
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
       
       const response = await fetch(`${url}/api/health`, {
-        method: 'GET',
-        headers: {
-          'bypass-tunnel-reminder': 'true',
-          'User-Agent': 'SchoolManager-App/1.0',
-          'X-Bypass-Tunnel': 'true',
-          'X-App-Source': 'mobile-app'
-        },
-        signal: controller.signal,
-        credentials: 'include'
+        method: 'GET', signal: controller.signal, credentials: 'include'
       });
       
       clearTimeout(timeoutId);
@@ -98,21 +83,15 @@ export class ConnectionManager {
     console.log('🚀 Iniciando busca pela melhor conexão...');
     this.lastConnectionCheck = Date.now();
     
-    // Primeiro, tentar encontrar o melhor provedor de túnel
-    const bestTunnelProvider = await alternativeTunnelManager.findBestProvider();
-    if (bestTunnelProvider) {
-      this.currentTunnelProvider = bestTunnelProvider;
-      this.currentBaseUrl = bestTunnelProvider.url;
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (currentOrigin.startsWith('http') &&
+        !window.location.hostname.endsWith('.github.io')) {
+      this.currentBaseUrl = currentOrigin;
       this.connectionType = 'global';
       this.isConnected = true;
-      
-      console.log(`🎯 Usando ${bestTunnelProvider.name}: ${bestTunnelProvider.url}`);
-      return this.currentBaseUrl;
+      return currentOrigin;
     }
-    
-    // Fallback para URLs locais se nenhum túnel funcionar
-    console.log('🔄 Testando conexões locais como fallback...');
-    for (const urlConfig of this.urls.filter(u => u.type !== 'global')) {
+    for (const urlConfig of this.urls) {
       const isAvailable = await this.testConnection(urlConfig.url);
       if (isAvailable) {
         this.currentBaseUrl = urlConfig.url;
@@ -123,12 +102,11 @@ export class ConnectionManager {
       }
     }
     
-    // Se nenhuma URL funcionar, usar a primeira como fallback
+    // Deixar o servidor público como fallback quando ele estiver acordando.
     console.log('⚠️ Nenhuma conexão disponível, usando fallback');
     this.currentBaseUrl = this.urls[0].url;
     this.connectionType = 'unknown';
     this.isConnected = false;
-    this.currentTunnelProvider = null;
     return this.currentBaseUrl;
   }
 
@@ -161,8 +139,7 @@ export class ConnectionManager {
       url: this.currentBaseUrl,
       type: this.connectionType,
       lastCheck: this.lastConnectionCheck,
-      tunnelProvider: this.currentTunnelProvider?.name,
-      hasWarningPage: this.currentTunnelProvider?.hasWarningPage || false
+      hasWarningPage: false
     };
   }
 
@@ -177,55 +154,19 @@ export class ConnectionManager {
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<Response> {
-    const maxRetries = this.urls.length;
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        if (!this.currentBaseUrl || attempt > 0) {
-          await this.findBestConnection();
-        }
-
-        const url = `${this.currentBaseUrl}${endpoint}`;
-        console.log(`📡 Fazendo requisição para: ${url} (Tipo: ${this.connectionType})`);
-
-        const headers = {
-          'bypass-tunnel-reminder': 'true',
-          'User-Agent': 'SchoolManager-App/1.0',
-          'X-Bypass-Tunnel': 'true',
-          'X-App-Source': 'mobile-app',
-          ...options.headers
-        };
-
-        const response = await fetch(url, {
-          ...options,
-          headers,
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          this.isConnected = true;
-          return response;
-        }
-
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      } catch (error) {
-        console.log(`❌ Tentativa ${attempt + 1} falhou (${this.connectionType}):`, error);
-        lastError = error as Error;
-        
-        // Se não é a última tentativa, tenta próxima URL
-        if (attempt < maxRetries - 1) {
-          this.isConnected = false;
-          this.connectionType = 'unknown';
-          continue;
-        }
-      }
+    if (!this.currentBaseUrl) await this.findBestConnection();
+    try {
+      const response = await fetch(`${this.currentBaseUrl}${endpoint}`, {
+        ...options,
+        credentials: 'include'
+      });
+      this.isConnected = true;
+      // O chamador precisa receber 401 e outros erros HTTP para tratá-los.
+      return response;
+    } catch (error) {
+      this.isConnected = false;
+      throw error;
     }
-
-    // Se chegou aqui, todas as tentativas falharam
-    this.isConnected = false;
-    this.connectionType = 'unknown';
-    throw lastError || new Error('Todas as tentativas de conexão falharam');
   }
 }
 
