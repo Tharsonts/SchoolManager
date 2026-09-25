@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import session from "express-session";
+import memorystore from "memorystore";
 import passport from "passport";
 import LocalStrategy from "passport-local";
 import cors from "cors";
@@ -16,6 +17,13 @@ import { users } from "../shared/schema";
 import { initializeRealtime } from "./realtime";
 
 const app = express();
+const SessionStore = memorystore(session);
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET is required in production');
+}
+if (isProduction) app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({
@@ -37,10 +45,11 @@ app.use(express.urlencoded({ extended: false }));
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
+  store: new SessionStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // set to true if using https
+    secure: isProduction,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax'
@@ -257,9 +266,9 @@ app.use((req, res, next) => {
   }, 24 * 60 * 60 * 1000); // 24 horas
 
   // Start server
-  server.listen(port, '0.0.0.0', () => {
+  const host = process.env.HOST || '0.0.0.0';
+  server.listen(port, host, () => {
     log(`serving on port ${port}`);
-    console.log(`Servidor iniciado na porta ${port} - Acessível em todas as interfaces de rede`);
-    console.log(`🌐 Acesse via: http://localhost:${port} ou http://192.168.2.47:${port}`);
+    console.log(`Servidor iniciado em ${host}:${port}`);
   });
 })();

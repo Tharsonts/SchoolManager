@@ -54,6 +54,8 @@ import nodemailer from "nodemailer";
 // Definir __dirname para modulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+// Keep one database location in development and in the bundled production server.
+const schoolDbPath = path.resolve(process.cwd(), 'server', 'school.db');
 
 // Configuracao do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -1418,7 +1420,7 @@ const hasRole = (roles: string[]) => {
       // Usar SQL direto com better-sqlite3 para evitar problemas com Drizzle ORM
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       try {
@@ -1495,7 +1497,7 @@ const hasRole = (roles: string[]) => {
         // Usar SQL direto para matricular aluno
         const Database = (await import('better-sqlite3')).default;
         const path = (await import('path')).default;
-        const dbPath = path.join(__dirname, 'school.db');
+        const dbPath = schoolDbPath;
         const sqliteDb = new Database(dbPath);
         
         try {
@@ -1816,7 +1818,7 @@ const hasRole = (roles: string[]) => {
         // Usar SQL direto para matricular aluno
         const Database = (await import('better-sqlite3')).default;
         const path = (await import('path')).default;
-        const dbPath = path.join(__dirname, 'school.db');
+        const dbPath = schoolDbPath;
         const sqliteDb = new Database(dbPath);
         
         try {
@@ -2361,7 +2363,7 @@ const hasRole = (roles: string[]) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let teacherClasses = [];
@@ -7029,7 +7031,7 @@ const hasRole = (roles: string[]) => {
       // Usar SQL direto para listar usuï¿½rios
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let allUsers = [];
@@ -7053,7 +7055,7 @@ const hasRole = (roles: string[]) => {
           if (userItem.role === 'student') {
             const Database = (await import('better-sqlite3')).default;
             const path = (await import('path')).default;
-            const dbPath = path.join(__dirname, 'school.db');
+            const dbPath = schoolDbPath;
             const sqliteDb = new Database(dbPath);
             
             let studentClassData = [];
@@ -7098,7 +7100,7 @@ const hasRole = (roles: string[]) => {
       // Usar mesma estratégia de listagem do endpoint admin para garantir consistência
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
 
       let allUsers = [];
@@ -7120,7 +7122,7 @@ const hasRole = (roles: string[]) => {
           if (userItem.role === 'student') {
             const Database = (await import('better-sqlite3')).default;
             const path = (await import('path')).default;
-            const dbPath = path.join(__dirname, 'school.db');
+            const dbPath = schoolDbPath;
             const sqliteDb = new Database(dbPath);
             try {
               const selectClassSql = `
@@ -7147,7 +7149,7 @@ const hasRole = (roles: string[]) => {
           if (userItem.role === 'teacher') {
             const Database = (await import('better-sqlite3')).default;
             const path = (await import('path')).default;
-            const dbPath = path.join(__dirname, 'school.db');
+            const dbPath = schoolDbPath;
             const sqliteDb = new Database(dbPath);
             try {
               const selectSubjectsSql = `
@@ -7307,7 +7309,7 @@ const hasRole = (roles: string[]) => {
       // Usar SQL direto com better-sqlite3 para evitar problemas com Drizzle ORM
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       try {
@@ -7373,7 +7375,7 @@ const hasRole = (roles: string[]) => {
         // Usar SQL direto para matricular aluno
         const Database = (await import('better-sqlite3')).default;
         const path = (await import('path')).default;
-        const dbPath = path.join(__dirname, 'school.db');
+        const dbPath = schoolDbPath;
         const sqliteDb = new Database(dbPath);
         
         try {
@@ -7542,7 +7544,7 @@ const hasRole = (roles: string[]) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let existingUser = null;
@@ -7824,7 +7826,7 @@ const hasRole = (roles: string[]) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let existingTeacher = null;
@@ -9145,7 +9147,7 @@ const hasRole = (roles: string[]) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let teachers = [];
@@ -9172,7 +9174,7 @@ const hasRole = (roles: string[]) => {
           const { fileURLToPath } = await import('url');
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = path.dirname(__filename);
-          const dbPath = path.join(__dirname, 'school.db');
+          const dbPath = schoolDbPath;
           const sqliteDb = new Database(dbPath);
           
           let teacherSubjects = [];
@@ -9548,7 +9550,7 @@ const hasRole = (roles: string[]) => {
       // Usar SQL direto para buscar turmas
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let classesList = [];
@@ -9570,7 +9572,7 @@ const hasRole = (roles: string[]) => {
         classesList.map(async (classItem) => {
           const Database = (await import('better-sqlite3')).default;
           const path = (await import('path')).default;
-          const dbPath = path.join(__dirname, 'school.db');
+          const dbPath = schoolDbPath;
           const sqliteDb = new Database(dbPath);
           
           let studentsCount = 0;
@@ -9635,7 +9637,7 @@ const hasRole = (roles: string[]) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let existingClass = null;
@@ -9999,7 +10001,7 @@ const hasRole = (roles: string[]) => {
       // Usar SQL direto com better-sqlite3 para evitar problemas com Drizzle ORM
       const Database = (await import('better-sqlite3')).default;
       const path = (await import('path')).default;
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       try {
@@ -13528,7 +13530,7 @@ Me conte exatamente o que vocï¿½ precisa e eu te darei uma resposta prï¿½t
       const { activityId } = req.params;
       
       // Usar o mesmo caminho do DB do servidor para evitar inconsistÃªncia
-      const dbPathFiles = path.join(__dirname, 'school.db');
+      const dbPathFiles = schoolDbPath;
       const sqliteDb = new Database(dbPathFiles);
       const files = sqliteDb.prepare(`
         SELECT af.*, af.fileName as originalName 
@@ -13581,7 +13583,7 @@ Me conte exatamente o que vocï¿½ precisa e eu te darei uma resposta prï¿½t
       }
 
       // Deletar arquivos da atividade primeiro
-      const sqliteDb = new Database('./school.db');
+      const sqliteDb = new Database(schoolDbPath);
       
       // Deletar arquivos das submissï¿½es
       sqliteDb.prepare(`
@@ -16435,7 +16437,7 @@ app.get('/api/coordinator/logs/terminal', isAuthenticated, hasRole(['coordinator
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const dbPath = path.join(__dirname, 'school.db');
+      const dbPath = schoolDbPath;
       const sqliteDb = new Database(dbPath);
       
       let existingStudent = null;
