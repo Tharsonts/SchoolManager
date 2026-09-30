@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 const RENDER_URL = "https://schoolmanager-demo.onrender.com";
 const HEALTH_URL = `${RENDER_URL}/api/health`;
@@ -15,12 +15,20 @@ const statusLines = [
 ];
 
 function getStatusText(elapsedSeconds: number, status: WakeStatus) {
-  if (status === "ready") return "Sistema pronto";
+  if (status === "ready") return "Sistema pronto. Abrindo...";
   if (elapsedSeconds < 4) return statusLines[0];
   if (elapsedSeconds < 10) return statusLines[1];
   if (elapsedSeconds < 18) return statusLines[2];
   if (elapsedSeconds < 28) return statusLines[3];
   return "Ajustando os ultimos detalhes";
+}
+
+function getStatusPhaseStart(elapsedSeconds: number) {
+  if (elapsedSeconds < 4) return 0;
+  if (elapsedSeconds < 10) return 4;
+  if (elapsedSeconds < 18) return 10;
+  if (elapsedSeconds < 28) return 18;
+  return 28;
 }
 
 export default function RenderWakePage() {
@@ -30,15 +38,15 @@ export default function RenderWakePage() {
 
   const progress = useMemo(() => {
     if (status === "ready") return 100;
-    return Math.min(92, 12 + elapsedSeconds * 4 + attempts * 3);
+    return Math.min(94, 7 + elapsedSeconds * 3 + attempts * 5);
   }, [attempts, elapsedSeconds, status]);
 
-  const gaugeStyle = useMemo(
-    () => ({
-      background: `conic-gradient(from -130deg, #67e8f9 0deg, #38bdf8 ${progress * 2.6}deg, rgba(148, 163, 184, 0.18) ${progress * 2.6}deg, rgba(148, 163, 184, 0.18) 260deg, transparent 260deg)`,
-    }),
-    [progress],
-  );
+  const statusText = getStatusText(elapsedSeconds, status);
+  const typedStatusText = useMemo(() => {
+    const phaseElapsed = Math.max(0, elapsedSeconds - getStatusPhaseStart(elapsedSeconds));
+    const visibleLetters = Math.max(1, Math.min(statusText.length, phaseElapsed * 10 + attempts * 2));
+    return status === "ready" ? statusText : statusText.slice(0, visibleLetters);
+  }, [attempts, elapsedSeconds, status, statusText]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -107,35 +115,30 @@ export default function RenderWakePage() {
             School Manager
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
-            Inicializando
+            Carregando sistema
           </h1>
 
-          <div className="mx-auto mt-10 flex h-64 w-64 items-center justify-center rounded-full p-3 shadow-2xl shadow-cyan-950/50 sm:h-72 sm:w-72" style={gaugeStyle}>
-            <div className="relative flex h-full w-full items-center justify-center rounded-full bg-[#07152f]">
-              <div className="absolute inset-5 rounded-full border border-cyan-200/10" />
-              <div className="absolute bottom-10 h-1 w-24 rounded-full bg-cyan-200/20" />
-              <div
-                className="absolute bottom-10 h-1 w-24 origin-right rounded-full bg-cyan-200 transition-transform duration-700"
-                style={{ transform: `rotate(${Math.min(130, -130 + progress * 2.6)}deg)` }}
-              />
-              <div className="space-y-2">
-                <div className="text-5xl font-bold tabular-nums">{progress}%</div>
-                <div className="mx-auto h-1.5 w-14 rounded-full bg-cyan-300" />
-              </div>
+          <div className="mx-auto mt-10 w-full max-w-lg">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <p className="min-h-7 text-left text-lg font-semibold text-slate-100 sm:text-xl">
+                {typedStatusText}
+                {status !== "ready" && <span className="animate-pulse text-cyan-300">_</span>}
+              </p>
+              <span className="shrink-0 text-2xl font-bold tabular-nums text-cyan-100">
+                {progress}%
+              </span>
             </div>
-          </div>
 
-          <div className="mt-8 min-h-16">
-            <div className="flex items-center justify-center gap-2 text-lg font-semibold text-slate-100">
-              {status === "ready" ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-300" />
-              ) : (
-                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-300" />
-              )}
-              <span>{getStatusText(elapsedSeconds, status)}</span>
+            <div className="relative h-5 overflow-hidden rounded-full border border-cyan-200/20 bg-slate-950/60 shadow-2xl shadow-cyan-950/40">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-300 transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.42),transparent)] opacity-60" />
             </div>
-            <p className="mt-2 text-sm text-slate-300">
-              Aguarde um instante. Voce sera redirecionado automaticamente.
+
+            <p className="mt-4 text-sm text-slate-300">
+              A tela avanca junto com a resposta do servidor.
             </p>
           </div>
         </section>
