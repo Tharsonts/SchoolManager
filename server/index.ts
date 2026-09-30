@@ -27,7 +27,13 @@ if (isProduction) app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://192.168.2.47:3001', 'http://localhost:3001', 'https://khaki-friends-add.loca.lt'],
+  origin: [
+    'http://localhost:5173',
+    'http://192.168.2.47:3001',
+    'http://localhost:3001',
+    'https://khaki-friends-add.loca.lt',
+    'https://tharsonts.github.io'
+  ],
   credentials: true
 }));
 

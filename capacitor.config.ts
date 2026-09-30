@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
-    url: 'https://schoolmanager-demo.onrender.com',
+    url: 'https://tharsonts.github.io/SchoolManager/',
   },
 };
 

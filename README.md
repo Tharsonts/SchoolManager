@@ -1,8 +1,8 @@
 # SchoolManager
 
-**Demonstração online:** [schoolmanager-demo.onrender.com](https://schoolmanager-demo.onrender.com). O serviço gratuito pode levar cerca de um minuto para abrir após um período sem acessos. Os dados cadastrados nessa demonstração voltam à base inicial quando o serviço reinicia; não use a demonstração para guardar dados reais.
+**Demonstração online:** [abrir pelo GitHub Pages](https://tharsonts.github.io/SchoolManager/). Essa tela acorda a hospedagem gratuita no Render e abre o sistema automaticamente quando o servidor estiver pronto. Os dados cadastrados nessa demonstração voltam à base inicial quando o serviço reinicia; não use a demonstração para guardar dados reais.
 
-**Android:** [baixar APK de demonstração](https://github.com/Tharsonts/SchoolManager/releases/download/v1.0.2-demo/SchoolManager-Demo.apk). O aplicativo abre a demonstração online e precisa de internet.
+**Android:** [baixar APK de demonstração](https://github.com/Tharsonts/SchoolManager/releases/download/v1.0.3-demo/SchoolManager-Demo.apk). O aplicativo abre a demonstração online e precisa de internet.
 
 <p align="center">
   <strong>Plataforma completa de gestão escolar desenvolvida como Trabalho de Conclusão de Curso.</strong>
